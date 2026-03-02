@@ -1,5 +1,5 @@
 import re
-from utils import date_parser
+from app.utils import date_utils
 
 class AirbnbParsingError(Exception):
     pass
@@ -14,7 +14,7 @@ def _extract_with_regex(pattern: str, text: str, field_name: str):
 
 def _normalize_date(date_str: str) -> str:
     try:
-        parsed_date = date_parser.parse(date_str, fuzzy=True)
+        parsed_date = date_utils.parse(date_str, fuzzy=True)
         return parsed_date.date().isoformat()
     except Exception:
         raise AirbnbParsingError(f"Invalid date format: {date_str}")
