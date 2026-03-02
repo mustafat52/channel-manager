@@ -6,6 +6,10 @@ __pycache__/
 # Environment variables
 .env
 
+# OAuth / Gmail credentials (VERY IMPORTANT)
+credentials.json
+token.json
+
 # Alembic cache
 alembic/versions/__pycache__/
 
@@ -14,3 +18,4 @@ alembic/versions/__pycache__/
 
 # OS
 .DS_Store
+Thumbs.db
