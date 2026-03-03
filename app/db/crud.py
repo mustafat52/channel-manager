@@ -97,3 +97,33 @@ def upsert_booking(
     db.flush()
 
     return new_booking
+
+
+# ---------------------------
+# CANCEL BOOKING
+# ---------------------------
+
+def cancel_booking(
+    db: Session,
+    booking_id: str,
+    platform: str,
+    message_id: str,
+):
+    booking = (
+        db.query(Booking)
+        .filter(
+            Booking.booking_id == booking_id,
+            Booking.platform == platform,
+        )
+        .first()
+    )
+
+    if not booking:
+        raise ValueError(
+            f"Booking {booking_id} on {platform} not found for cancellation."
+        )
+
+    booking.status = BookingStatus.cancelled
+    booking.last_email_message_id = message_id
+
+    return booking

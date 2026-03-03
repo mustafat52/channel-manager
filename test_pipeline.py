@@ -48,4 +48,4 @@ if __name__ == "__main__":
     run_test("sample_airbnb.txt")
 
     print("\nRunning Vrbo test...\n")
-    run_test("sample_vrbo.txt")
+    run_test("sample_vrbo_two.txt")

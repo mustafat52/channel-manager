@@ -17,7 +17,7 @@ def detect_platform(email_text: str) -> str:
     lower_text = email_text.lower()
 
     # Airbnb detection
-    if "confirmation code" in lower_text and "airbnb" in lower_text:
+    if "airbnb" in lower_text:
         return "airbnb"
 
     # Vrbo detection
@@ -30,7 +30,6 @@ def detect_platform(email_text: str) -> str:
 
     raise UnsupportedEmailError("Could not determine email platform.")
 
-
 def parse_email(email_text: str) -> dict:
     """
     Main entry point for parsing any booking email.
@@ -38,6 +37,11 @@ def parse_email(email_text: str) -> dict:
     """
 
     platform = detect_platform(email_text)
+
+    # 🔴 Cancellation detection FIRST
+    if platform == "airbnb" and "reservation canceled" in email_text.lower():
+        from .airbnb import parse_airbnb_cancellation
+        return parse_airbnb_cancellation(email_text)
 
     try:
         if platform == "airbnb":

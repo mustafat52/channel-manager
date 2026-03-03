@@ -106,3 +106,27 @@ def parse_airbnb(email_text: str) -> dict:
         "check_in": check_in,
         "check_out": check_out,
     }
+
+
+def parse_airbnb_cancellation(email_text: str) -> dict:
+    """
+    Parses Airbnb cancellation email.
+    Extracts booking ID and marks status as cancelled.
+    """
+    import re
+
+    match = re.search(
+        r"Reservation\s+([A-Z0-9]+)",
+        email_text
+    )
+
+    if not match:
+        raise AirbnbParsingError("Booking ID not found in cancellation email.")
+
+    booking_id = match.group(1).strip()
+
+    return {
+        "platform": "airbnb",
+        "booking_id": booking_id,
+        "status": "cancelled",
+    }

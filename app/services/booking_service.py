@@ -48,6 +48,26 @@ def process_email(
 
     platform = parsed["platform"]
 
+    # ---------------------------
+    # Handle Cancellation
+    # ---------------------------
+    if parsed.get("status") == "cancelled":
+        booking = crud.cancel_booking(
+            db=db,
+            booking_id=parsed["booking_id"],
+            platform=platform,
+            message_id=message_id,
+        )
+
+        crud.mark_email_processed(
+            db=db,
+            message_id=message_id,
+            platform=platform,
+        )
+
+        db.commit()
+        return booking
+
     # Skip Booking.com for now
     if platform == "booking":
         raise UnsupportedPlatformForInsert(
