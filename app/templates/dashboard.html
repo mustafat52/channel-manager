@@ -2,85 +2,108 @@
 <html>
 <head>
     <title>Channel Manager Dashboard</title>
-    <style>
-        body {
-            font-family: Arial;
-            padding: 30px;
-            background-color: #f4f6f8;
-        }
 
-        h1 {
-            margin-bottom: 10px;
-        }
+<style>
 
-        .stats {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 25px;
-        }
+body {
+    font-family: Arial;
+    padding: 30px;
+    background-color: #f4f6f8;
+}
 
-        .card {
-            background: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            flex: 1;
-        }
+h1 {
+    margin-bottom: 10px;
+}
 
-        .card h2 {
-            margin: 0;
-            font-size: 22px;
-        }
+.stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 25px;
+}
 
-        .card p {
-            margin: 5px 0 0;
-            color: gray;
-        }
+.card {
+    background: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    flex: 1;
+}
 
-        .filters {
-            margin-bottom: 20px;
-        }
+.card h2 {
+    margin: 0;
+    font-size: 22px;
+}
 
-        .filters a {
-            margin-right: 10px;
-            text-decoration: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            background-color: #1f2937;
-            color: white;
-        }
+.card p {
+    margin: 5px 0 0;
+    color: gray;
+}
 
-        .filters a.active {
-            background-color: #2563eb;
-        }
+.filters {
+    margin-bottom: 20px;
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-        }
+.filters a {
+    margin-right: 10px;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background-color: #1f2937;
+    color: white;
+}
 
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
+.filters a.active {
+    background-color: #2563eb;
+}
 
-        th {
-            background-color: #1f2937;
-            color: white;
-        }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
 
-        tr:hover {
-            background-color: #f9fafb;
-        }
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
 
-        .confirmed { color: green; font-weight: bold; }
-        .cancelled { color: red; font-weight: bold; }
-        .modified { color: orange; font-weight: bold; }
-    </style>
+/* IMPORTANT FIX FOR LONG TEXT */
+td {
+    max-width: 250px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+th {
+    background-color: #1f2937;
+    color: white;
+}
+
+tr:hover {
+    background-color: #f9fafb;
+}
+
+.confirmed {
+    color: green;
+    font-weight: bold;
+}
+
+.cancelled {
+    color: red;
+    font-weight: bold;
+}
+
+.modified {
+    color: orange;
+    font-weight: bold;
+}
+
+</style>
 </head>
+
 <body>
 
 <h1>Channel Manager Dashboard</h1>
@@ -90,14 +113,17 @@
         <h2>{{ total_bookings }}</h2>
         <p>Total Bookings</p>
     </div>
+
     <div class="card">
         <h2>{{ airbnb_count }}</h2>
         <p>Airbnb</p>
     </div>
+
     <div class="card">
         <h2>{{ vrbo_count }}</h2>
         <p>Vrbo</p>
     </div>
+
     <div class="card">
         <h2>{{ confirmed_count }}</h2>
         <p>Confirmed</p>
@@ -111,42 +137,54 @@
 </div>
 
 <table>
-    <thead>
-        <tr>
-            <th>ID</th>
 
-            {% if not selected_platform %}
-            <th>Platform</th>
-            {% endif %}
+<thead>
+<tr>
 
-            <th>Property</th>
-            <th>Guest</th>
-            <th>Check-in</th>
-            <th>Check-out</th>
-            <th>Status</th>
-            
-        </tr>
-    </thead>
-    <tbody>
-        {% for booking in bookings %}
-        <tr>
-            <td>{{ booking.booking_id }}</td>
+<th>ID</th>
 
-            {% if not selected_platform %}
-            <td>{{ booking.platform }}</td>
-            {% endif %}
+{% if not selected_platform %}
+<th>Platform</th>
+{% endif %}
 
-            <td>{{ booking.property.name if booking.property else "-" }}</td>
-            <td>{{ booking.guest_name }}</td>
-            <td>{{ booking.checkin_date }}</td>
-            <td>{{ booking.checkout_date }}</td>
-            <td class="{{ booking.status.value }}">
-                {{ booking.status.value }}
-            </td>
-            
-        </tr>
-        {% endfor %}
-    </tbody>
+<th>Property</th>
+<th>Guest</th>
+<th>Check-in</th>
+<th>Check-out</th>
+<th>Status</th>
+
+</tr>
+</thead>
+
+<tbody>
+
+{% for booking in bookings %}
+
+<tr>
+
+<td>{{ booking.booking_id }}</td>
+
+{% if not selected_platform %}
+<td>{{ booking.platform }}</td>
+{% endif %}
+
+<td>{{ booking.property.name if booking.property else booking.property_name }}</td>
+
+<td>{{ booking.guest_name }}</td>
+
+<td>{{ booking.checkin_date }}</td>
+
+<td>{{ booking.checkout_date }}</td>
+
+<td class="{{ booking.status.value }}">
+{{ booking.status.value }}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
 </table>
 
 </body>
