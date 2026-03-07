@@ -21,7 +21,7 @@ def detect_platform(email_text: str) -> str:
         return "airbnb"
 
     # Vrbo detection
-    if "reservation id" in lower_text:
+    if "vrbo" in lower_text or "homeaway" in lower_text:
         return "vrbo"
 
     # Booking.com detection

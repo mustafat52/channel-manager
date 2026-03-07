@@ -42,14 +42,14 @@ import base64
 from email import message_from_bytes
 
 
-def fetch_airbnb_emails():
+def fetch_booking_emails():
 
     service = get_gmail_service()
 
     results = service.users().messages().list(
         userId="me",
-        q="newer_than:1d",  #add this later from:airbnb.com
-        maxResults=10
+        q="newer_than:2d",
+        maxResults=50
     ).execute()
 
     messages = results.get("messages", [])
