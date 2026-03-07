@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login — Channel Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --navy: #243f62;
+    --blue: #5b9bd5;
+    --blue-deep: #3a7bbf;
+    --blue-pale: #ddeeff;
+    --bg: #eef2f7;
+    --surface: #ffffff;
+    --border: #dce6f0;
+    --text: #3a4a5c;
+    --muted: #8a9db5;
+}
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    /* Soft radial glow */
+    background-image:
+        radial-gradient(ellipse at 40% 30%, rgba(91,155,213,0.14) 0%, transparent 55%),
+        radial-gradient(ellipse at 70% 80%, rgba(91,155,213,0.08) 0%, transparent 45%);
+}
+
+.login-wrap {
+    width: 100%;
+    max-width: 400px;
+    animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@keyframes rise {
+    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Brand above card */
+.brand {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.brand-icon {
+    width: 54px; height: 54px;
+    background: var(--navy);
+    border-radius: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 8px 24px rgba(36,63,98,0.25);
+    margin-bottom: 12px;
+}
+
+.brand h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--navy);
+}
+
+.brand p {
+    font-size: 13.5px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: 3px;
+}
+
+/* Card */
+.card {
+    background: var(--surface);
+    border-radius: 22px;
+    padding: 36px 38px 32px;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 4px 32px rgba(50,80,120,0.1);
+}
+
+/* Fields */
+.field {
+    margin-bottom: 18px;
+    animation: fadeUp 0.4s ease both;
+}
+.field:nth-child(1) { animation-delay: 0.2s; }
+.field:nth-child(2) { animation-delay: 0.28s; }
+.field:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+}
+
+input[type="email"],
+input[type="password"] {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    -webkit-appearance: none;
+}
+
+input:focus {
+    border-color: var(--blue);
+    background: white;
+    box-shadow: 0 0 0 3.5px rgba(91,155,213,0.18);
+}
+
+input::placeholder {
+    color: #b8c8d8;
+    font-weight: 400;
+}
+
+/* Button */
+button[type="submit"] {
+    width: 100%;
+    padding: 14px;
+    background: var(--navy);
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: background 0.2s, transform 0.12s, box-shadow 0.2s;
+    box-shadow: 0 4px 14px rgba(36,63,98,0.22);
+}
+
+button[type="submit"]:hover {
+    background: var(--blue-deep);
+    box-shadow: 0 6px 20px rgba(58,123,191,0.32);
+    transform: translateY(-1px);
+}
+
+button[type="submit"]:active { transform: translateY(0); }
+
+/* Footer note */
+.footer-note {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+
+    <div class="brand">
+        <div class="brand-icon">🏡</div>
+        <h1>Channel Manager</h1>
+        <p>Sign in to your dashboard</p>
+    </div>
+
+    <div class="card">
+        <form method="POST" action="/login">
+
+            <div class="field">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" placeholder="you@example.com" required>
+            </div>
+
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="••••••••" required>
+            </div>
+
+            <div class="field">
+                <button type="submit">Sign in</button>
+            </div>
+
+        </form>
+    </div>
+
+    <p class="footer-note">Airbnb · Vrbo · Direct — all in one place</p>
+
+</div>
+
+</body>
+</html>

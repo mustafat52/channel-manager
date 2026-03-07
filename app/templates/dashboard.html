@@ -2,190 +2,352 @@
 <html>
 <head>
     <title>Channel Manager Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg: #eef2f7;
+    --surface: #ffffff;
+    --surface-2: #f5f8fb;
+    --border: #e0e8f0;
+    --blue-pale: #ddeeff;
+    --blue: #5b9bd5;
+    --blue-deep: #3a7bbf;
+    --navy: #243f62;
+    --text: #3a4a5c;
+    --muted: #8a9db5;
+    --green: #28a06a;
+    --red: #d95048;
+    --amber: #d4882a;
+    --shadow: 0 2px 14px rgba(50,80,120,0.08);
+    --shadow-hover: 0 6px 26px rgba(50,80,120,0.14);
+}
+
 body {
-    font-family: Arial;
-    padding: 30px;
-    background-color: #f4f6f8;
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
 }
 
-h1 {
-    margin-bottom: 10px;
-}
-
-.stats {
+/* ── Top Nav ─── */
+.topnav {
+    background: var(--navy);
+    height: 62px;
+    padding: 0 40px;
     display: flex;
-    gap: 20px;
-    margin-bottom: 25px;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(20,40,70,0.18);
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.nav-icon {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.13);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    border: 1px solid rgba(255,255,255,0.18);
+}
+
+.nav-brand h1 {
+    font-size: 17px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: 0.01em;
+}
+
+.nav-pill {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.1);
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.12);
+    letter-spacing: 0.04em;
+}
+
+/* ── Page ─── */
+.page {
+    padding: 30px 40px 50px;
+}
+
+/* ── Stats ─── */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 30px;
 }
 
 .card {
-    background: white;
-    padding: 15px 25px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    flex: 1;
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 22px 24px;
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    animation: fadeUp 0.45s ease both;
+}
+.card:nth-child(1){animation-delay:.05s}
+.card:nth-child(2){animation-delay:.12s}
+.card:nth-child(3){animation-delay:.19s}
+.card:nth-child(4){animation-delay:.26s}
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+
+.card-ico {
+    width: 50px; height: 50px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    background: var(--blue-pale);
+    flex-shrink: 0;
 }
 
 .card h2 {
-    margin: 0;
-    font-size: 22px;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1;
+    margin-bottom: 3px;
+    letter-spacing: -0.02em;
 }
 
 .card p {
-    margin: 5px 0 0;
-    color: gray;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
 }
 
-.filters {
-    margin-bottom: 20px;
+/* ── Toolbar ─── */
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    animation: fadeUp 0.45s 0.3s ease both;
 }
+
+.toolbar-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+}
+
+.filters { display: flex; gap: 7px; }
 
 .filters a {
-    margin-right: 10px;
     text-decoration: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    background-color: #1f2937;
-    color: white;
+    padding: 7px 18px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--surface);
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    transition: all 0.17s ease;
+}
+
+.filters a:hover {
+    border-color: var(--blue);
+    color: var(--blue-deep);
+    background: var(--blue-pale);
 }
 
 .filters a.active {
-    background-color: #2563eb;
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+    box-shadow: 0 3px 10px rgba(36,63,98,0.22);
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 8px;
+/* ── Table ─── */
+.table-wrap {
+    background: var(--surface);
+    border-radius: 18px;
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow);
     overflow: hidden;
+    animation: fadeUp 0.45s 0.37s ease both;
 }
 
-th, td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    text-align: left;
-}
+table { width: 100%; border-collapse: collapse; }
 
-/* IMPORTANT FIX FOR LONG TEXT */
-td {
-    max-width: 250px;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+thead tr {
+    background: var(--surface-2);
+    border-bottom: 1.5px solid var(--border);
 }
 
 th {
-    background-color: #1f2937;
-    color: white;
+    padding: 13px 18px;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+th:first-child { padding-left: 26px; }
+th:last-child  { padding-right: 26px; }
+
+tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.14s ease;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #f3f7fc; }
+
+td {
+    padding: 14px 18px;
+    font-size: 14px;
+    color: var(--text);
+    max-width: 230px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+td:first-child { padding-left: 26px; }
+td:last-child  { padding-right: 26px; }
+
+.id-badge {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--surface-2);
+    padding: 3px 9px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
 }
 
-tr:hover {
-    background-color: #f9fafb;
+.plat-badge {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--blue-pale);
+    color: var(--blue-deep);
 }
 
-.confirmed {
-    color: green;
-    font-weight: bold;
+.prop-name { font-weight: 700; color: var(--navy); }
+
+.date-val { font-size: 13.5px; color: var(--muted); font-weight: 500; }
+
+td.confirmed { color: var(--green); font-weight: 700; font-size: 13px; }
+td.cancelled { color: var(--red);   font-weight: 700; font-size: 13px; }
+td.modified  { color: var(--amber); font-weight: 700; font-size: 13px; }
+
+/* ── Animations ─── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-.cancelled {
-    color: red;
-    font-weight: bold;
-}
-
-.modified {
-    color: orange;
-    font-weight: bold;
+@media (max-width: 860px) {
+    .page, .topnav { padding-left: 20px; padding-right: 20px; }
+    .stats { grid-template-columns: repeat(2,1fr); }
 }
 
 </style>
 </head>
-
 <body>
 
-<h1>Channel Manager Dashboard</h1>
+<nav class="topnav">
+    <div class="nav-brand">
+        <div class="nav-icon">🏡</div>
+        <h1>Channel Manager</h1>
+    </div>
+    <span class="nav-pill">Dashboard</span>
+</nav>
 
-<div class="stats">
-    <div class="card">
-        <h2>{{ total_bookings }}</h2>
-        <p>Total Bookings</p>
+<div class="page">
+
+    <div class="stats">
+        <div class="card">
+            <div class="card-ico">📋</div>
+            <div>
+                <h2>{{ total_bookings }}</h2>
+                <p>Total Bookings</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-ico">🏠</div>
+            <div>
+                <h2>{{ airbnb_count }}</h2>
+                <p>Airbnb</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-ico">🏘️</div>
+            <div>
+                <h2>{{ vrbo_count }}</h2>
+                <p>Vrbo</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-ico">✅</div>
+            <div>
+                <h2>{{ confirmed_count }}</h2>
+                <p>Confirmed</p>
+            </div>
+        </div>
     </div>
 
-    <div class="card">
-        <h2>{{ airbnb_count }}</h2>
-        <p>Airbnb</p>
+    <div class="toolbar">
+        <span class="toolbar-label">All Reservations</span>
+        <div class="filters">
+            <a href="/dashboard" class="{% if not selected_platform %}active{% endif %}">All</a>
+            <a href="/dashboard?platform=airbnb" class="{% if selected_platform == 'airbnb' %}active{% endif %}">Airbnb</a>
+            <a href="/dashboard?platform=vrbo" class="{% if selected_platform == 'vrbo' %}active{% endif %}">Vrbo</a>
+        </div>
     </div>
 
-    <div class="card">
-        <h2>{{ vrbo_count }}</h2>
-        <p>Vrbo</p>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    {% if not selected_platform %}<th>Platform</th>{% endif %}
+                    <th>Property</th>
+                    <th>Guest</th>
+                    <th>Check-in</th>
+                    <th>Check-out</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td><span class="id-badge">{{ booking.booking_id }}</span></td>
+                    {% if not selected_platform %}
+                    <td><span class="plat-badge">{{ booking.platform }}</span></td>
+                    {% endif %}
+                    <td><span class="prop-name">{{ booking.property.name if booking.property else booking.property_name }}</span></td>
+                    <td>{{ booking.guest_name }}</td>
+                    <td><span class="date-val">{{ booking.checkin_date }}</span></td>
+                    <td><span class="date-val">{{ booking.checkout_date }}</span></td>
+                    <td class="{{ booking.status.value }}">{{ booking.status.value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <div class="card">
-        <h2>{{ confirmed_count }}</h2>
-        <p>Confirmed</p>
-    </div>
 </div>
-
-<div class="filters">
-    <a href="/dashboard" class="{% if not selected_platform %}active{% endif %}">All</a>
-    <a href="/dashboard?platform=airbnb" class="{% if selected_platform == 'airbnb' %}active{% endif %}">Airbnb</a>
-    <a href="/dashboard?platform=vrbo" class="{% if selected_platform == 'vrbo' %}active{% endif %}">Vrbo</a>
-</div>
-
-<table>
-
-<thead>
-<tr>
-
-<th>ID</th>
-
-{% if not selected_platform %}
-<th>Platform</th>
-{% endif %}
-
-<th>Property</th>
-<th>Guest</th>
-<th>Check-in</th>
-<th>Check-out</th>
-<th>Status</th>
-
-</tr>
-</thead>
-
-<tbody>
-
-{% for booking in bookings %}
-
-<tr>
-
-<td>{{ booking.booking_id }}</td>
-
-{% if not selected_platform %}
-<td>{{ booking.platform }}</td>
-{% endif %}
-
-<td>{{ booking.property.name if booking.property else booking.property_name }}</td>
-
-<td>{{ booking.guest_name }}</td>
-
-<td>{{ booking.checkin_date }}</td>
-
-<td>{{ booking.checkout_date }}</td>
-
-<td class="{{ booking.status.value }}">
-{{ booking.status.value }}
-</td>
-
-</tr>
-
-{% endfor %}
-
-</tbody>
-</table>
-
 </body>
 </html>

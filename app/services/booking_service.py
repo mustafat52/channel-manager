@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.parsers.router import parse_email
 from app.db.models import BookingStatus
 from app.db import crud
-
+from app.db.models import FailedEmail
 
 
 class EmailAlreadyProcessed(Exception):
@@ -124,3 +124,14 @@ def process_email(
     db.commit()
 
     return booking
+
+def store_failed_email(db, message_id, email_body, error_message):
+
+    failed = FailedEmail(
+        message_id=message_id,
+        email_body=email_body,
+        error_message=error_message
+    )
+
+    db.add(failed)
+    db.commit()

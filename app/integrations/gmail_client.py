@@ -48,7 +48,7 @@ def fetch_booking_emails():
 
     results = service.users().messages().list(
         userId="me",
-        q="newer_than:2d",
+        q="is:unread newer_than:2d",
         maxResults=50
     ).execute()
 
@@ -61,7 +61,7 @@ def fetch_booking_emails():
         message = service.users().messages().get(
             userId="me",
             id=msg["id"],
-            format="raw"
+            body={"removeLabelIds": ["UNREAD"]}
         ).execute()
 
         raw = base64.urlsafe_b64decode(message["raw"])

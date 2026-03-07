@@ -4,6 +4,7 @@ from app.integrations.gmail_client import fetch_booking_emails
 from app.services.booking_service import process_email
 from app.db.database import SessionLocal
 from app.services.booking_service import EmailAlreadyProcessed
+from app.services.booking_service import store_failed_email
 
 
 def run_worker():
@@ -34,7 +35,14 @@ def run_worker():
                     print(f"Skipping already processed email {email['message_id']}")
 
                 except Exception as e:
-                    print(f"Skipping unsupported email {email['message_id']}: {e}")    
+                    print(f"Failed to process email {email['message_id']}: {e}")
+
+                    store_failed_email(
+                        db,
+                        email["message_id"],
+                        email["body"],
+                        str(e)
+                    )    
 
         finally:
             db.close()
