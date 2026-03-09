@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Channel Manager Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<title>Channel Manager Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 
@@ -34,7 +34,7 @@ body {
     color: var(--text);
 }
 
-/* ── Top Nav ─── */
+/* NAV */
 .topnav {
     background: var(--navy);
     height: 62px;
@@ -42,312 +42,359 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 2px 12px rgba(20,40,70,0.18);
 }
 
-.nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-}
-
+.nav-brand { display:flex; align-items:center; gap:11px; }
 .nav-icon {
-    width: 36px; height: 36px;
+    width:36px; height:36px;
     background: rgba(255,255,255,0.13);
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 17px;
-    border: 1px solid rgba(255,255,255,0.18);
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
 }
 
-.nav-brand h1 {
-    font-size: 17px;
-    font-weight: 700;
-    color: white;
-    letter-spacing: 0.01em;
-}
+.nav-brand h1 { font-size:17px; color:white; }
 
 .nav-pill {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.6);
-    background: rgba(255,255,255,0.1);
-    padding: 5px 14px;
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.12);
-    letter-spacing: 0.04em;
+    font-size:12px;
+    background:rgba(255,255,255,0.1);
+    padding:5px 14px;
+    border-radius:20px;
+    color:white;
 }
 
-/* ── Page ─── */
-.page {
-    padding: 30px 40px 50px;
-}
+/* PAGE */
+.page { padding:30px 40px 50px; }
 
-/* ── Stats ─── */
+/* STATS */
 .stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 30px;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:16px;
+    margin-bottom:30px;
 }
 
 .card {
-    background: var(--surface);
-    border-radius: 18px;
-    padding: 22px 24px;
-    border: 1.5px solid var(--border);
-    box-shadow: var(--shadow);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    transition: transform 0.22s ease, box-shadow 0.22s ease;
-    animation: fadeUp 0.45s ease both;
+    background:var(--surface);
+    border-radius:18px;
+    padding:22px 24px;
+    border:1.5px solid var(--border);
+    box-shadow:var(--shadow);
+    display:flex;
+    align-items:center;
+    gap:16px;
 }
-.card:nth-child(1){animation-delay:.05s}
-.card:nth-child(2){animation-delay:.12s}
-.card:nth-child(3){animation-delay:.19s}
-.card:nth-child(4){animation-delay:.26s}
-.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
 
 .card-ico {
-    width: 50px; height: 50px;
-    border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    background: var(--blue-pale);
-    flex-shrink: 0;
+    width:50px;height:50px;
+    border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;
+    background:var(--blue-pale);
 }
 
-.card h2 {
-    font-size: 32px;
-    font-weight: 700;
-    color: var(--navy);
-    line-height: 1;
-    margin-bottom: 3px;
-    letter-spacing: -0.02em;
-}
+.card h2 { font-size:32px; color:var(--navy); }
+.card p { font-size:12px; color:var(--muted); }
 
-.card p {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-}
-
-/* ── Toolbar ─── */
+/* TOOLBAR */
 .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-    animation: fadeUp 0.45s 0.3s ease both;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.toolbar-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
 }
 
 .toolbar-label {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--navy);
+    font-size:15px;
+    font-weight:700;
+    color:var(--navy);
 }
 
-.filters { display: flex; gap: 7px; }
+.filters { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
 
 .filters a {
-    text-decoration: none;
-    padding: 7px 18px;
-    border-radius: 30px;
-    font-size: 13px;
-    font-weight: 600;
-    background: var(--surface);
-    color: var(--muted);
-    border: 1.5px solid var(--border);
-    transition: all 0.17s ease;
-}
-
-.filters a:hover {
-    border-color: var(--blue);
-    color: var(--blue-deep);
-    background: var(--blue-pale);
+    text-decoration:none;
+    padding:7px 18px;
+    border-radius:30px;
+    font-size:13px;
+    font-weight:600;
+    background:var(--surface);
+    color:var(--muted);
+    border:1.5px solid var(--border);
+    transition: background 0.15s, color 0.15s;
 }
 
 .filters a.active {
-    background: var(--navy);
-    color: white;
+    background:var(--navy);
+    color:white;
     border-color: var(--navy);
-    box-shadow: 0 3px 10px rgba(36,63,98,0.22);
 }
 
-/* ── Table ─── */
+.filters a:hover:not(.active) {
+    background: var(--blue-pale);
+    color: var(--navy);
+}
+
+/* SEARCH */
+.search-box input{
+    padding:7px 12px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    font-size:13px;
+    font-family: 'Nunito', sans-serif;
+}
+
+/* TABLE */
 .table-wrap {
-    background: var(--surface);
-    border-radius: 18px;
-    border: 1.5px solid var(--border);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-    animation: fadeUp 0.45s 0.37s ease both;
+    background:var(--surface);
+    border-radius:18px;
+    border:1.5px solid var(--border);
+    box-shadow:var(--shadow);
+    overflow:hidden;
 }
 
-table { width: 100%; border-collapse: collapse; }
+table { width:100%; border-collapse:collapse; }
 
-thead tr {
-    background: var(--surface-2);
-    border-bottom: 1.5px solid var(--border);
-}
+thead tr { background:var(--surface-2); }
 
 th {
-    padding: 13px 18px;
+    padding:13px 18px;
+    font-size:10px;
+    text-transform:uppercase;
+    color:var(--muted);
     text-align: left;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-    color: var(--muted);
 }
-th:first-child { padding-left: 26px; }
-th:last-child  { padding-right: 26px; }
-
-tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background 0.14s ease;
-}
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: #f3f7fc; }
 
 td {
-    padding: 14px 18px;
-    font-size: 14px;
-    color: var(--text);
-    max-width: 230px;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    padding:14px 18px;
+    font-size:14px;
+    border-top: 1px solid var(--border);
 }
-td:first-child { padding-left: 26px; }
-td:last-child  { padding-right: 26px; }
 
 .id-badge {
-    font-size: 11.5px;
-    font-weight: 700;
-    color: var(--muted);
-    background: var(--surface-2);
-    padding: 3px 9px;
-    border-radius: 7px;
-    border: 1px solid var(--border);
+    font-size:11px;
+    background:var(--surface-2);
+    padding:3px 9px;
+    border-radius:7px;
 }
 
 .plat-badge {
-    display: inline-block;
-    padding: 3px 11px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-    background: var(--blue-pale);
+    padding:3px 11px;
+    border-radius:20px;
+    background:var(--blue-pale);
+    font-size:12px;
+    font-weight:600;
     color: var(--blue-deep);
 }
 
-.prop-name { font-weight: 700; color: var(--navy); }
+.prop-name { font-weight:700; color:var(--navy); }
 
-.date-val { font-size: 13.5px; color: var(--muted); font-weight: 500; }
+td.confirmed { color:var(--green); font-weight:700; }
+td.cancelled { color:var(--red); font-weight:700; }
+td.modified  { color:var(--amber); font-weight:700; }
 
-td.confirmed { color: var(--green); font-weight: 700; font-size: 13px; }
-td.cancelled { color: var(--red);   font-weight: 700; font-size: 13px; }
-td.modified  { color: var(--amber); font-weight: 700; font-size: 13px; }
-
-/* ── Animations ─── */
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 860px) {
-    .page, .topnav { padding-left: 20px; padding-right: 20px; }
-    .stats { grid-template-columns: repeat(2,1fr); }
+.filter-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 4px;
 }
 
 </style>
 </head>
+
 <body>
 
 <nav class="topnav">
-    <div class="nav-brand">
-        <div class="nav-icon">🏡</div>
-        <h1>Channel Manager</h1>
-    </div>
-    <span class="nav-pill">Dashboard</span>
+<div class="nav-brand">
+<div class="nav-icon">🏡</div>
+<h1>Channel Manager</h1>
+</div>
+<span class="nav-pill">Dashboard</span>
 </nav>
 
 <div class="page">
 
-    <div class="stats">
-        <div class="card">
-            <div class="card-ico">📋</div>
-            <div>
-                <h2>{{ total_bookings }}</h2>
-                <p>Total Bookings</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-ico">🏠</div>
-            <div>
-                <h2>{{ airbnb_count }}</h2>
-                <p>Airbnb</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-ico">🏘️</div>
-            <div>
-                <h2>{{ vrbo_count }}</h2>
-                <p>Vrbo</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-ico">✅</div>
-            <div>
-                <h2>{{ confirmed_count }}</h2>
-                <p>Confirmed</p>
-            </div>
-        </div>
-    </div>
+<!-- STATS -->
+<div class="stats">
 
-    <div class="toolbar">
-        <span class="toolbar-label">All Reservations</span>
-        <div class="filters">
-            <a href="/dashboard" class="{% if not selected_platform %}active{% endif %}">All</a>
-            <a href="/dashboard?platform=airbnb" class="{% if selected_platform == 'airbnb' %}active{% endif %}">Airbnb</a>
-            <a href="/dashboard?platform=vrbo" class="{% if selected_platform == 'vrbo' %}active{% endif %}">Vrbo</a>
-        </div>
-    </div>
+<div class="card">
+<div class="card-ico">📋</div>
+<div>
+<h2>{{ total_bookings }}</h2>
+<p>Total Bookings</p>
+</div>
+</div>
 
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    {% if not selected_platform %}<th>Platform</th>{% endif %}
-                    <th>Property</th>
-                    <th>Guest</th>
-                    <th>Check-in</th>
-                    <th>Check-out</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for booking in bookings %}
-                <tr>
-                    <td><span class="id-badge">{{ booking.booking_id }}</span></td>
-                    {% if not selected_platform %}
-                    <td><span class="plat-badge">{{ booking.platform }}</span></td>
-                    {% endif %}
-                    <td><span class="prop-name">{{ booking.property.name if booking.property else booking.property_name }}</span></td>
-                    <td>{{ booking.guest_name }}</td>
-                    <td><span class="date-val">{{ booking.checkin_date }}</span></td>
-                    <td><span class="date-val">{{ booking.checkout_date }}</span></td>
-                    <td class="{{ booking.status.value }}">{{ booking.status.value }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="card">
+<div class="card-ico">🏠</div>
+<div>
+<h2>{{ airbnb_count }}</h2>
+<p>Airbnb</p>
+</div>
+</div>
+
+<div class="card">
+<div class="card-ico">🏘️</div>
+<div>
+<h2>{{ vrbo_count }}</h2>
+<p>Vrbo</p>
+</div>
+</div>
+
+<div class="card">
+<div class="card-ico">🌐</div>
+<div>
+<h2>{{ booking_count }}</h2>
+<p>Booking.com</p>
+</div>
+</div>
+
+<div class="card">
+<div class="card-ico">✅</div>
+<div>
+<h2>{{ confirmed_count }}</h2>
+<p>Confirmed</p>
+</div>
+</div>
 
 </div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+
+<div class="toolbar-row">
+<span class="toolbar-label">Reservations</span>
+
+<div class="search-box">
+<!-- Search preserves all active filters -->
+<form method="get" action="/dashboard">
+  {% if selected_platform %}<input type="hidden" name="platform" value="{{ selected_platform }}">{% endif %}
+  {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
+  <input type="hidden" name="window" value="{{ window }}">
+  <input type="text" name="search" placeholder="Search guest, booking ID, property"
+    value="{{ search if search else '' }}">
+</form>
+</div>
+</div>
+
+<!--
+  FILTER LINK PATTERN (used throughout):
+  Every filter pill carries the OTHER two filters' current state in the URL,
+  so clicking one filter never resets the others.
+  None-valued params are simply omitted (no "platform=None" pollution).
+-->
+
+<!-- PLATFORM FILTER -->
+<div class="filters">
+<span class="filter-section-label">Platform</span>
+
+{# Helper macro: build query string preserving all filters except the one being changed #}
+
+<a href="/dashboard?window={{ window }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+   class="{% if not selected_platform %}active{% endif %}">
+  All
+</a>
+
+{% for plat in ['airbnb', 'vrbo', 'booking'] %}
+<a href="/dashboard?platform={{ plat }}&window={{ window }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+   class="{% if selected_platform == plat %}active{% endif %}">
+  {{ 'Airbnb' if plat == 'airbnb' else ('Vrbo' if plat == 'vrbo' else 'Booking.com') }}
+</a>
+{% endfor %}
+
+</div>
+
+<!-- CHECKOUT WINDOW FILTER -->
+<div class="filters">
+<span class="filter-section-label">Checkout in</span>
+
+{% for d in [3, 7, 14, 20, 30] %}
+<a href="/dashboard?window={{ d }}{% if selected_platform %}&platform={{ selected_platform }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+   class="{% if window == d %}active{% endif %}">
+  {{ d }} days
+</a>
+{% endfor %}
+
+</div>
+
+<!-- STATUS FILTER -->
+<div class="filters">
+<span class="filter-section-label">Status</span>
+
+{% for s, label in [('confirmed','Confirmed'), ('cancelled','Cancelled'), ('modified','Modified')] %}
+<a href="/dashboard?status={{ s }}&window={{ window }}{% if selected_platform %}&platform={{ selected_platform }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+   class="{% if selected_status == s %}active{% endif %}">
+  {{ label }}
+</a>
+{% endfor %}
+
+<a href="/dashboard" style="border-color:transparent; color:var(--red); margin-left:6px;">
+  Clear all
+</a>
+
+</div>
+
+</div>
+
+<!-- TABLE -->
+<div class="table-wrap">
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+{% if not selected_platform %}<th>Platform</th>{% endif %}
+<th>Property</th>
+<th>Guest</th>
+<th>Check-in</th>
+<th>Check-out</th>
+<th>Status</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for booking in bookings %}
+<tr>
+<td><span class="id-badge">{{ booking.booking_id }}</span></td>
+
+{% if not selected_platform %}
+<td><span class="plat-badge">{{ booking.platform }}</span></td>
+{% endif %}
+
+<td><span class="prop-name">{{ booking.property.name }}</span></td>
+
+<td>{{ booking.guest_name }}</td>
+
+<td>{{ booking.checkin_date }}</td>
+
+<td>{{ booking.checkout_date }}</td>
+
+<td class="{{ booking.status.value }}">{{ booking.status.value }}</td>
+
+</tr>
+{% else %}
+<tr>
+  <td colspan="7" style="text-align:center; color:var(--muted); padding:40px;">
+    No reservations match the current filters.
+  </td>
+</tr>
+{% endfor %}
+
+</tbody>
+
+</table>
+</div>
+
+</div>
+
 </body>
 </html>
