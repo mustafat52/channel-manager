@@ -48,7 +48,7 @@ def fetch_booking_emails():
 
     results = service.users().messages().list(
         userId="me",
-        q="is:unread newer_than:2d",
+        q="is:read newer_than:7d",      #later change it to unread and 2d
         maxResults=50
     ).execute()
 
