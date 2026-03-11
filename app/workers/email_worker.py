@@ -1,53 +1,63 @@
-import time
+import logging
 
-from app.integrations.gmail_client import fetch_booking_emails
+from app.integrations.gmail_client import fetch_booking_emails, mark_email_read
 from app.services.booking_service import process_email
 from app.db.database import SessionLocal
 from app.services.booking_service import EmailAlreadyProcessed
 from app.services.booking_service import store_failed_email
 
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 def run_worker():
 
-    while True:
+    logger.info("Email worker started")
 
-        print("Worker running... checking Gmail")
+    db = SessionLocal()
 
-        db = SessionLocal()
+    try:
 
-        try:
+        emails = fetch_booking_emails()
 
-            emails = fetch_booking_emails()
-            print("Worker running... checking Gmail")
+        logger.info(f"{len(emails)} unread emails fetched")
 
-            for email in emails:
-                print("Processing email:", email["message_id"])
-                print(email["body"][:200])
+        for email in emails:
 
-                try:
-                    process_email(
-                        db,
-                        email["body"],
-                        email["message_id"]
-                    )
+            message_id = email["message_id"]
 
-                except EmailAlreadyProcessed:
-                    print(f"Skipping already processed email {email['message_id']}")
+            try:
 
-                except Exception as e:
-                    print(f"Failed to process email {email['message_id']}: {e}")
+                logger.info(f"Processing email {message_id}")
 
-                    store_failed_email(
-                        db,
-                        email["message_id"],
-                        email["body"],
-                        str(e)
-                    )    
+                process_email(
+                    db,
+                    email["body"],
+                    message_id
+                )
 
-        finally:
-            db.close()
+                mark_email_read(message_id)
 
-        time.sleep(60)
+            except EmailAlreadyProcessed:
+
+                logger.info(f"Skipping already processed email {message_id}")
+
+                mark_email_read(message_id)
+
+            except Exception as e:
+
+                logger.error(f"Failed email {message_id}: {str(e)}")
+
+                store_failed_email(
+                    db,
+                    message_id,
+                    email["body"],
+                    str(e)
+                )
+
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
