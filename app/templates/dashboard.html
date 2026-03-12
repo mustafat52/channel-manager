@@ -273,7 +273,44 @@ td.modified  { color:var(--amber); font-weight:700; }
 <div class="toolbar-row">
 <span class="toolbar-label">Reservations</span>
 
-<button onclick="openBookingForm()">Add Booking</button>
+<div class="manual-entry-wrap">
+  <button class="btn-add-booking" id="manualEntryBtn" onclick="toggleManualMenu(event)">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Manual Entry
+    <svg class="menu-caret" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="manual-menu" id="manualMenu">
+    <button class="manual-menu-item" onclick="openDrawer('add')">
+      <span class="menu-item-icon menu-icon-add">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </span>
+      <div class="menu-item-text">
+        <span class="menu-item-title">Add a Booking</span>
+        <span class="menu-item-desc">Create a new reservation manually</span>
+      </div>
+    </button>
+    <div class="menu-divider"></div>
+    <button class="manual-menu-item" onclick="openDrawer('cancel')">
+      <span class="menu-item-icon menu-icon-cancel">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2l9 9M11 2L2 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </span>
+      <div class="menu-item-text">
+        <span class="menu-item-title">Cancel a Booking</span>
+        <span class="menu-item-desc">Look up and cancel a reservation</span>
+      </div>
+    </button>
+    <div class="menu-divider"></div>
+    <button class="manual-menu-item" onclick="openDrawer('update')">
+      <span class="menu-item-icon menu-icon-update">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7.5A5 5 0 1 0 5.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/><path d="M2 4.5V2H4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <div class="menu-item-text">
+        <span class="menu-item-title">Update a Booking</span>
+        <span class="menu-item-desc">Edit dates, property or status</span>
+      </div>
+    </button>
+  </div>
+</div>
 
 <div class="search-box">
 <!-- Search preserves all active filters -->
@@ -397,83 +434,670 @@ td.modified  { color:var(--amber); font-weight:700; }
 </div>
 
 </div>
-<div id="bookingModal" style="display:none; background:#eee; padding:20px; margin:20px;">
+<!-- DRAWER OVERLAY -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
 
-<h3>Manual Booking Entry</h3>
+<!-- UNIFIED SLIDE-IN DRAWER -->
+<div id="bookingDrawer" class="booking-drawer">
 
-<form id="bookingForm">
+  <!-- HEADER (dynamic) -->
+  <div class="drawer-header">
+    <div class="drawer-header-left">
+      <div class="drawer-icon" id="drawerIconWrap">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1v16M1 9h16" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <h2 class="drawer-title" id="drawerTitle">New Reservation</h2>
+        <p class="drawer-subtitle" id="drawerSubtitle">Manual booking entry</p>
+      </div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
 
-<label>Booking ID</label><br>
-<input type="text" name="booking_id" required><br><br>
+  <!-- PANEL: ADD BOOKING -->
+  <div class="drawer-body" id="panel-add">
+    <form id="bookingForm" autocomplete="off">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Booking ID</label>
+          <input class="form-input" type="text" name="booking_id" placeholder="e.g. BK-20240915" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Platform</label>
+          <div class="select-wrap">
+            <select class="form-input form-select" name="platform">
+              <option value="airbnb">🏠 Airbnb</option>
+              <option value="vrbo">🏘️ Vrbo</option>
+              <option value="booking">🌐 Booking.com</option>
+            </select>
+            <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Property</label>
+        <div class="select-wrap">
+          <select class="form-input form-select" name="property_name">
+            <option value="Ocean View Villa">Ocean View Villa</option>
+            <option value="Palm Beach Apartment">Palm Beach Apartment</option>
+            <option value="Sunset Retreat">Sunset Retreat</option>
+            <option value="City Center Loft">City Center Loft</option>
+          </select>
+          <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Guest Name</label>
+        <input class="form-input" type="text" name="guest_name" placeholder="Full name" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Check-in</label>
+          <input class="form-input" type="date" name="checkin_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Check-out</label>
+          <input class="form-input" type="date" name="checkout_date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <div class="status-pills">
+          <label class="status-pill"><input type="radio" name="status" value="confirmed" checked><span class="pill-label pill-confirmed">✓ Confirmed</span></label>
+          <label class="status-pill"><input type="radio" name="status" value="cancelled"><span class="pill-label pill-cancelled">✕ Cancelled</span></label>
+          <label class="status-pill"><input type="radio" name="status" value="modified"><span class="pill-label pill-modified">~ Modified</span></label>
+        </div>
+      </div>
+    </form>
+  </div>
 
-<label>Platform</label><br>
-<select name="platform">
-<option value="airbnb">Airbnb</option>
-<option value="vrbo">Vrbo</option>
-<option value="booking">Booking.com</option>
-</select><br><br>
+  <!-- PANEL: CANCEL BOOKING -->
+  <div class="drawer-body" id="panel-cancel" style="display:none">
 
-<label>Property</label><br>
-<select name="property_name">
-<option value="Ocean View Villa">Ocean View Villa</option>
-<option value="Palm Beach Apartment">Palm Beach Apartment</option>
-<option value="Sunset Retreat">Sunset Retreat</option>
-<option value="City Center Loft">City Center Loft</option>
-</select><br><br>
+    <!-- Step 1: lookup -->
+    <div id="cancel-step1">
+      <div class="step-hint">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="var(--blue)" stroke-width="1.5"/><path d="M7.5 5v4M7.5 10.5v.5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Enter the Booking ID to look it up before cancelling.
+      </div>
+      <div class="form-group" style="margin-top:14px">
+        <label class="form-label">Booking ID</label>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="cancel-id-input" type="text" placeholder="e.g. BK-20240915">
+          <button class="btn-lookup" id="cancelLookupBtn" type="button" onclick="lookupBooking('cancel')">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Look up
+          </button>
+        </div>
+      </div>
+    </div>
 
-<label>Guest Name</label><br>
-<input type="text" name="guest_name" required><br><br>
+    <!-- Step 2: confirm cancel -->
+    <div id="cancel-step2" style="display:none">
+      <div class="booking-found-card" id="cancelFoundCard"></div>
+      <div class="danger-banner">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L15 14H1L8 1z" stroke="var(--red)" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v.5" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span>This action will mark the reservation as <strong>Cancelled</strong>. It cannot be undone from here.</span>
+      </div>
+    </div>
 
-<label>Check-in</label><br>
-<input type="date" name="checkin_date"><br><br>
+  </div>
 
-<label>Check-out</label><br>
-<input type="date" name="checkout_date"><br><br>
+  <!-- PANEL: UPDATE BOOKING -->
+  <div class="drawer-body" id="panel-update" style="display:none">
 
-<label>Status</label><br>
-<select name="status">
-<option value="confirmed">Confirmed</option>
-<option value="cancelled">Cancelled</option>
-</select><br><br>
+    <!-- Step 1: lookup -->
+    <div id="update-step1">
+      <div class="step-hint">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="var(--blue)" stroke-width="1.5"/><path d="M7.5 5v4M7.5 10.5v.5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Enter the Booking ID to load its current details.
+      </div>
+      <div class="form-group" style="margin-top:14px">
+        <label class="form-label">Booking ID</label>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="update-id-input" type="text" placeholder="e.g. BK-20240915">
+          <button class="btn-lookup" id="updateLookupBtn" type="button" onclick="lookupBooking('update')">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Look up
+          </button>
+        </div>
+      </div>
+    </div>
 
-<button type="submit">Save Booking</button>
-<button type="button" onclick="closeBookingForm()">Cancel</button>
+    <!-- Step 2: edit form -->
+    <div id="update-step2" style="display:none">
+      <div class="booking-found-card" id="updateFoundCard"></div>
+      <form id="updateForm" autocomplete="off">
+        <input type="hidden" id="update-booking-id-hidden" name="booking_id">
+        <div class="form-group">
+          <label class="form-label">Property</label>
+          <div class="select-wrap">
+            <select class="form-input form-select" name="property_name" id="upd-property">
+              <option value="Ocean View Villa">Ocean View Villa</option>
+              <option value="Palm Beach Apartment">Palm Beach Apartment</option>
+              <option value="Sunset Retreat">Sunset Retreat</option>
+              <option value="City Center Loft">City Center Loft</option>
+            </select>
+            <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Guest Name</label>
+          <input class="form-input" id="upd-guest" type="text" name="guest_name" placeholder="Full name">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Check-in</label>
+            <input class="form-input" id="upd-checkin" type="date" name="checkin_date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Check-out</label>
+            <input class="form-input" id="upd-checkout" type="date" name="checkout_date">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <div class="status-pills">
+            <label class="status-pill"><input type="radio" name="status" value="confirmed" id="upd-st-confirmed"><span class="pill-label pill-confirmed">✓ Confirmed</span></label>
+            <label class="status-pill"><input type="radio" name="status" value="cancelled" id="upd-st-cancelled"><span class="pill-label pill-cancelled">✕ Cancelled</span></label>
+            <label class="status-pill"><input type="radio" name="status" value="modified" id="upd-st-modified"><span class="pill-label pill-modified">~ Modified</span></label>
+          </div>
+        </div>
+      </form>
+    </div>
 
-</form>
+  </div>
+
+  <!-- FOOTER (dynamic) -->
+  <div class="drawer-footer" id="drawerFooter">
+    <button class="btn-cancel-action" type="button" onclick="closeDrawer()">Cancel</button>
+    <button class="btn-save" type="button" id="drawerActionBtn" onclick="handleDrawerAction()">
+      <span class="btn-save-text" id="drawerActionText">Save Reservation</span>
+      <span class="btn-save-loader" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 16 16" class="spin"><circle cx="8" cy="8" r="6" stroke="rgba(255,255,255,0.3)" stroke-width="2" fill="none"/><path d="M8 2a6 6 0 016 6" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+        Processing…
+      </span>
+    </button>
+  </div>
 
 </div>
+
+<style>
+
+/* ── MANUAL ENTRY BUTTON + DROPDOWN ── */
+.manual-entry-wrap {
+    position: relative;
+}
+
+.btn-add-booking {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+    box-shadow: 0 2px 10px rgba(36,63,98,0.25);
+    white-space: nowrap;
+}
+.btn-add-booking:hover {
+    background: var(--blue-deep);
+    box-shadow: 0 4px 18px rgba(36,63,98,0.35);
+    transform: translateY(-1px);
+}
+.btn-add-booking:active { transform: translateY(0); }
+.menu-caret { transition: transform 0.2s; }
+.btn-add-booking.menu-open .menu-caret { transform: rotate(180deg); }
+
+.manual-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 260px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(36,63,98,0.16);
+    z-index: 500;
+    padding: 8px;
+    animation: menuPop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.manual-menu.open { display: block; }
+
+@keyframes menuPop {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+.manual-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    text-align: left;
+    transition: background 0.12s;
+}
+.manual-menu-item:hover { background: var(--surface-2); }
+
+.menu-item-icon {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.menu-icon-add    { background: rgba(91,155,213,0.15); color: var(--blue-deep); }
+.menu-icon-cancel { background: rgba(217,80,72,0.12);  color: var(--red); }
+.menu-icon-update { background: rgba(212,136,42,0.12); color: var(--amber); }
+
+.menu-item-text { display: flex; flex-direction: column; gap: 1px; }
+.menu-item-title { font-size: 13px; font-weight: 700; color: var(--navy); }
+.menu-item-desc  { font-size: 11px; color: var(--muted); }
+
+.menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* ── OVERLAY ── */
+.drawer-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20,35,55,0.45);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    animation: fadeIn 0.2s ease;
+}
+.drawer-overlay.open { display: block; }
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+
+/* ── DRAWER ── */
+.booking-drawer {
+    position: fixed;
+    top: 0; right: 0;
+    height: 100vh;
+    width: 440px;
+    background: var(--surface);
+    border-left: 1.5px solid var(--border);
+    box-shadow: -8px 0 40px rgba(36,63,98,0.14);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.booking-drawer.open { transform: translateX(0); }
+
+/* ── HEADER ── */
+.drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 28px 22px;
+    border-bottom: 1.5px solid var(--border);
+}
+.drawer-header-left { display:flex; align-items:center; gap:14px; }
+.drawer-icon {
+    width:42px; height:42px;
+    border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+    transition: background 0.2s;
+}
+.drawer-title { font-size:17px; font-weight:700; color:var(--navy); line-height:1.2; }
+.drawer-subtitle { font-size:12px; color:var(--muted); margin-top:2px; }
+.drawer-close {
+    width:34px; height:34px;
+    border:1.5px solid var(--border);
+    border-radius:9px;
+    background:var(--surface-2);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--muted);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink:0;
+}
+.drawer-close:hover { background:var(--blue-pale); color:var(--navy); border-color:var(--blue); }
+
+/* ── BODY ── */
+.drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 26px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* ── FORM ELEMENTS ── */
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+.form-input {
+    width:100%; padding:10px 14px;
+    border:1.5px solid var(--border); border-radius:10px;
+    font-size:13px; font-family:'Nunito',sans-serif;
+    color:var(--text); background:var(--surface);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline:none; appearance:none;
+}
+.form-input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(91,155,213,0.18); }
+.form-input::placeholder { color:var(--muted); }
+.select-wrap { position:relative; }
+.form-select { cursor:pointer; padding-right:34px; }
+.select-arrow { position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+
+/* ── STATUS PILLS ── */
+.status-pills { display:flex; gap:8px; flex-wrap:wrap; }
+.status-pill input[type="radio"] { display:none; }
+.pill-label {
+    display:inline-block; padding:8px 16px; border-radius:30px;
+    font-size:12px; font-weight:700;
+    border:1.5px solid var(--border); background:var(--surface-2);
+    color:var(--muted); cursor:pointer; transition:all 0.15s; user-select:none;
+}
+.status-pill input:checked + .pill-confirmed { background:rgba(40,160,106,0.12); border-color:var(--green); color:var(--green); }
+.status-pill input:checked + .pill-cancelled { background:rgba(217,80,72,0.1);  border-color:var(--red);   color:var(--red); }
+.status-pill input:checked + .pill-modified  { background:rgba(212,136,42,0.1); border-color:var(--amber); color:var(--amber); }
+.pill-label:hover { border-color:var(--blue); color:var(--navy); }
+
+/* ── LOOKUP BUTTON ── */
+.btn-lookup {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:9px 16px; border:1.5px solid var(--border);
+    border-radius:10px; background:var(--surface-2);
+    color:var(--navy); font-size:13px; font-weight:700;
+    font-family:'Nunito',sans-serif; cursor:pointer; white-space:nowrap;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.btn-lookup:hover { background:var(--blue-pale); border-color:var(--blue); box-shadow:0 2px 8px rgba(91,155,213,0.2); }
+
+/* ── STEP HINT ── */
+.step-hint {
+    display:flex; align-items:flex-start; gap:9px;
+    background:var(--blue-pale); border:1.5px solid rgba(91,155,213,0.3);
+    border-radius:10px; padding:12px 14px;
+    font-size:12px; color:var(--blue-deep); font-weight:600; line-height:1.5;
+}
+
+/* ── BOOKING FOUND CARD ── */
+.booking-found-card {
+    background:var(--surface-2); border:1.5px solid var(--border);
+    border-radius:12px; padding:14px 16px;
+    font-size:13px; color:var(--text);
+    display:flex; flex-direction:column; gap:6px;
+}
+.found-row { display:flex; justify-content:space-between; align-items:center; }
+.found-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+.found-val { font-weight:700; color:var(--navy); font-size:13px; }
+.found-badge-confirmed { color:var(--green); }
+.found-badge-cancelled { color:var(--red); }
+.found-badge-modified  { color:var(--amber); }
+
+/* ── DANGER BANNER ── */
+.danger-banner {
+    display:flex; align-items:flex-start; gap:10px;
+    background:rgba(217,80,72,0.08); border:1.5px solid rgba(217,80,72,0.25);
+    border-radius:10px; padding:13px 14px;
+    font-size:12px; color:var(--red); font-weight:600; line-height:1.5;
+    margin-top:4px;
+}
+
+/* ── FOOTER ── */
+.drawer-footer {
+    padding:18px 28px 24px; border-top:1.5px solid var(--border);
+    display:flex; gap:10px; background:var(--surface);
+}
+.btn-cancel-action {
+    flex:1; padding:11px;
+    border:1.5px solid var(--border); border-radius:10px;
+    background:var(--surface-2); color:var(--muted);
+    font-size:13px; font-weight:700; font-family:'Nunito',sans-serif;
+    cursor:pointer; transition: background 0.15s, color 0.15s;
+}
+.btn-cancel-action:hover { background:var(--border); color:var(--text); }
+.btn-save {
+    flex:2; padding:11px; border:none; border-radius:10px;
+    background:var(--navy); color:white;
+    font-size:13px; font-weight:700; font-family:'Nunito',sans-serif;
+    cursor:pointer; transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+    box-shadow:0 2px 10px rgba(36,63,98,0.25);
+    display:flex; align-items:center; justify-content:center; gap:7px;
+}
+.btn-save:hover { background:var(--blue-deep); box-shadow:0 4px 16px rgba(36,63,98,0.35); transform:translateY(-1px); }
+.btn-save:active { transform:translateY(0); }
+.btn-save.danger-btn { background:var(--red); box-shadow:0 2px 10px rgba(217,80,72,0.3); }
+.btn-save.danger-btn:hover { background:#c2312a; box-shadow:0 4px 16px rgba(217,80,72,0.4); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; }
+
+</style>
+
 <script>
 
-function openBookingForm(){
-    document.getElementById("bookingModal").style.display="block";
+let currentMode = 'add';
+
+// ── DROPDOWN MENU ──
+function toggleManualMenu(e) {
+    e.stopPropagation();
+    const btn = document.getElementById('manualEntryBtn');
+    const menu = document.getElementById('manualMenu');
+    const isOpen = menu.classList.contains('open');
+    menu.classList.toggle('open', !isOpen);
+    btn.classList.toggle('menu-open', !isOpen);
 }
 
-function closeBookingForm(){
-    document.getElementById("bookingModal").style.display="none";
-}
+document.addEventListener('click', function() {
+    document.getElementById('manualMenu').classList.remove('open');
+    document.getElementById('manualEntryBtn').classList.remove('menu-open');
+});
 
-document.getElementById("bookingForm").addEventListener("submit", async function(e){
+// ── OPEN DRAWER ──
+const drawerConfig = {
+    add: {
+        title: 'New Reservation',
+        subtitle: 'Create a booking manually',
+        iconBg: 'var(--navy)',
+        iconSvg: '<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1v16M1 9h16" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>',
+        actionText: 'Save Reservation',
+        actionClass: ''
+    },
+    cancel: {
+        title: 'Cancel Booking',
+        subtitle: 'Look up and cancel a reservation',
+        iconBg: 'var(--red)',
+        iconSvg: '<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 3l12 12M15 3L3 15" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>',
+        actionText: 'Confirm Cancellation',
+        actionClass: 'danger-btn'
+    },
+    update: {
+        title: 'Update Booking',
+        subtitle: 'Edit reservation details',
+        iconBg: 'var(--amber)',
+        iconSvg: '<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9.5A6 6 0 1 0 7 3" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M3 5.5V3H5.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        actionText: 'Save Changes',
+        actionClass: ''
+    }
+};
 
-    e.preventDefault();
+function openDrawer(mode) {
+    document.getElementById('manualMenu').classList.remove('open');
+    document.getElementById('manualEntryBtn').classList.remove('menu-open');
 
-    const formData = new FormData(this);
-    const data = Object.fromEntries(formData.entries());
+    currentMode = mode;
+    const cfg = drawerConfig[mode];
 
-    const res = await fetch("/api/manual-booking",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify(data)
+    // Set header
+    document.getElementById('drawerTitle').textContent = cfg.title;
+    document.getElementById('drawerSubtitle').textContent = cfg.subtitle;
+    document.getElementById('drawerIconWrap').style.background = cfg.iconBg;
+    document.getElementById('drawerIconWrap').innerHTML = cfg.iconSvg;
+
+    // Set action button
+    const btn = document.getElementById('drawerActionBtn');
+    btn.className = 'btn-save ' + cfg.actionClass;
+    document.getElementById('drawerActionText').textContent = cfg.actionText;
+    btn.querySelector('.btn-save-loader').style.display = 'none';
+    btn.querySelector('.btn-save-text').style.display = '';
+    btn.disabled = false;
+
+    // Show correct panel
+    ['add','cancel','update'].forEach(p => {
+        document.getElementById('panel-' + p).style.display = p === mode ? 'flex' : 'none';
     });
 
-    const result = await res.json();
-
-    if(result.success){
-        location.reload();
+    // Reset cancel/update to step 1
+    if (mode === 'cancel') {
+        document.getElementById('cancel-step1').style.display = '';
+        document.getElementById('cancel-step2').style.display = 'none';
+        document.getElementById('cancel-id-input').value = '';
+        btn.disabled = true; btn.style.opacity = '0.5';
+    }
+    if (mode === 'update') {
+        document.getElementById('update-step1').style.display = '';
+        document.getElementById('update-step2').style.display = 'none';
+        document.getElementById('update-id-input').value = '';
+        btn.disabled = true; btn.style.opacity = '0.5';
+    }
+    if (mode === 'add') {
+        btn.disabled = false; btn.style.opacity = '';
     }
 
-});
+    document.getElementById('drawerOverlay').classList.add('open');
+    document.getElementById('bookingDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.getElementById('bookingDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeDrawer(); });
+
+// ── LOOKUP ──
+async function lookupBooking(mode) {
+    const inputId = mode + '-id-input';
+    const bookingId = document.getElementById(inputId).value.trim();
+    if (!bookingId) return;
+
+    const btn = document.getElementById(mode + 'LookupBtn');
+    btn.textContent = 'Searching…';
+    btn.disabled = true;
+
+    // Simulate API call — replace with real fetch
+    await new Promise(r => setTimeout(r, 800));
+
+    // Mock result — replace with real API data
+    const mockBooking = {
+        booking_id: bookingId,
+        guest: 'James Harrington',
+        property: 'Ocean View Villa',
+        checkin: '2024-09-15',
+        checkout: '2024-09-22',
+        status: 'confirmed',
+        platform: 'Airbnb'
+    };
+
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Look up';
+    btn.disabled = false;
+
+    const statusClass = 'found-badge-' + mockBooking.status;
+
+    const cardHtml = `
+      <div class="found-row"><span class="found-label">Booking ID</span><span class="found-val">${mockBooking.booking_id}</span></div>
+      <div class="found-row"><span class="found-label">Guest</span><span class="found-val">${mockBooking.guest}</span></div>
+      <div class="found-row"><span class="found-label">Property</span><span class="found-val">${mockBooking.property}</span></div>
+      <div class="found-row"><span class="found-label">Dates</span><span class="found-val">${mockBooking.checkin} → ${mockBooking.checkout}</span></div>
+      <div class="found-row"><span class="found-label">Status</span><span class="found-val ${statusClass}">${mockBooking.status.charAt(0).toUpperCase()+mockBooking.status.slice(1)}</span></div>
+    `;
+
+    if (mode === 'cancel') {
+        document.getElementById('cancelFoundCard').innerHTML = cardHtml;
+        document.getElementById('cancel-step1').style.display = 'none';
+        document.getElementById('cancel-step2').style.display = 'flex';
+        document.getElementById('cancel-step2').style.flexDirection = 'column';
+        document.getElementById('cancel-step2').style.gap = '14px';
+        const actionBtn = document.getElementById('drawerActionBtn');
+        actionBtn.disabled = false;
+        actionBtn.style.opacity = '';
+    }
+
+    if (mode === 'update') {
+        document.getElementById('updateFoundCard').innerHTML = cardHtml;
+        document.getElementById('update-step1').style.display = 'none';
+        document.getElementById('update-step2').style.display = 'flex';
+        document.getElementById('update-step2').style.flexDirection = 'column';
+        document.getElementById('update-step2').style.gap = '16px';
+        // Pre-fill form
+        document.getElementById('update-booking-id-hidden').value = mockBooking.booking_id;
+        document.getElementById('upd-guest').value = mockBooking.guest;
+        document.getElementById('upd-checkin').value = mockBooking.checkin;
+        document.getElementById('upd-checkout').value = mockBooking.checkout;
+        document.querySelector(`#upd-property option[value="${mockBooking.property}"]`) &&
+            (document.getElementById('upd-property').value = mockBooking.property);
+        const statusRadio = document.getElementById('upd-st-' + mockBooking.status);
+        if (statusRadio) statusRadio.checked = true;
+        const actionBtn = document.getElementById('drawerActionBtn');
+        actionBtn.disabled = false;
+        actionBtn.style.opacity = '';
+    }
+}
+
+// ── SUBMIT ──
+async function handleDrawerAction() {
+    const btn = document.getElementById('drawerActionBtn');
+
+    if (currentMode === 'add') {
+        const form = document.getElementById('bookingForm');
+        if(!form.checkValidity()){ form.reportValidity(); return; }
+        const data = Object.fromEntries(new FormData(form).entries());
+        await submitAction('/api/manual-booking', data, btn);
+    }
+
+    if (currentMode === 'cancel') {
+        const bookingId = document.getElementById('cancel-id-input').value.trim();
+        await submitAction('/api/cancel-booking', { booking_id: bookingId }, btn);
+    }
+
+    if (currentMode === 'update') {
+        const form = document.getElementById('updateForm');
+        const data = Object.fromEntries(new FormData(form).entries());
+        await submitAction('/api/update-booking', data, btn);
+    }
+}
+
+async function submitAction(url, data, btn) {
+    btn.querySelector('.btn-save-text').style.display = 'none';
+    btn.querySelector('.btn-save-loader').style.display = 'inline-flex';
+    btn.disabled = true;
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if(result.success){ location.reload(); }
+    } catch(err) {
+        btn.querySelector('.btn-save-text').style.display = '';
+        btn.querySelector('.btn-save-loader').style.display = 'none';
+        btn.disabled = false;
+    }
+}
 
 </script>
 </body>
