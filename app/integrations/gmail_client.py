@@ -58,7 +58,14 @@ def fetch_booking_emails():
 
     for msg in messages:
 
+        
         message = service.users().messages().get(
+            userId="me",
+            id=msg["id"],
+            format="raw"
+        ).execute()
+
+        service.users().messages().modify(
             userId="me",
             id=msg["id"],
             body={"removeLabelIds": ["UNREAD"]}

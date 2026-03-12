@@ -5,6 +5,7 @@ from app.parsers.router import parse_email
 from app.db.models import BookingStatus
 from app.db import crud
 from app.db.models import FailedEmail
+from app.services.notification_service import send_whatsapp_message
 
 
 class EmailAlreadyProcessed(Exception):
@@ -66,6 +67,14 @@ def process_email(
         )
 
         db.commit()
+        message = f"""
+        ❌ BOOKING CANCELLED
+
+        Booking ID: {parsed["booking_id"]}
+        Platform: {platform}
+        """
+
+        send_whatsapp_message(message)
         return booking
 
     # Skip Booking.com for now
@@ -122,6 +131,26 @@ def process_email(
     # 7️⃣ Commit Transaction
     # ---------------------------
     db.commit()
+
+    # ---------------------------
+    # 8️⃣ Send WhatsApp Notification
+    # ---------------------------
+    if not booking.notified_instant:
+        message = f"""
+        📌 NEW BOOKING
+
+        Property: {property_name}
+        Guest: {parsed.get("guest_name")}
+
+        Check-in: {checkin_date}
+        Check-out: {checkout_date}
+
+        Platform: {platform}
+        """
+
+        send_whatsapp_message(message)
+        booking.notified_instant = True
+        db.commit()
 
     return booking
 

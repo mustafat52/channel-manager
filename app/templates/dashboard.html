@@ -273,6 +273,8 @@ td.modified  { color:var(--amber); font-weight:700; }
 <div class="toolbar-row">
 <span class="toolbar-label">Reservations</span>
 
+<button onclick="openBookingForm()">Add Booking</button>
+
 <div class="search-box">
 <!-- Search preserves all active filters -->
 <form method="get" action="/dashboard">
@@ -395,6 +397,84 @@ td.modified  { color:var(--amber); font-weight:700; }
 </div>
 
 </div>
+<div id="bookingModal" style="display:none; background:#eee; padding:20px; margin:20px;">
 
+<h3>Manual Booking Entry</h3>
+
+<form id="bookingForm">
+
+<label>Booking ID</label><br>
+<input type="text" name="booking_id" required><br><br>
+
+<label>Platform</label><br>
+<select name="platform">
+<option value="airbnb">Airbnb</option>
+<option value="vrbo">Vrbo</option>
+<option value="booking">Booking.com</option>
+</select><br><br>
+
+<label>Property</label><br>
+<select name="property_name">
+<option value="Ocean View Villa">Ocean View Villa</option>
+<option value="Palm Beach Apartment">Palm Beach Apartment</option>
+<option value="Sunset Retreat">Sunset Retreat</option>
+<option value="City Center Loft">City Center Loft</option>
+</select><br><br>
+
+<label>Guest Name</label><br>
+<input type="text" name="guest_name" required><br><br>
+
+<label>Check-in</label><br>
+<input type="date" name="checkin_date"><br><br>
+
+<label>Check-out</label><br>
+<input type="date" name="checkout_date"><br><br>
+
+<label>Status</label><br>
+<select name="status">
+<option value="confirmed">Confirmed</option>
+<option value="cancelled">Cancelled</option>
+</select><br><br>
+
+<button type="submit">Save Booking</button>
+<button type="button" onclick="closeBookingForm()">Cancel</button>
+
+</form>
+
+</div>
+<script>
+
+function openBookingForm(){
+    document.getElementById("bookingModal").style.display="block";
+}
+
+function closeBookingForm(){
+    document.getElementById("bookingModal").style.display="none";
+}
+
+document.getElementById("bookingForm").addEventListener("submit", async function(e){
+
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+
+    const res = await fetch("/api/manual-booking",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify(data)
+    });
+
+    const result = await res.json();
+
+    if(result.success){
+        location.reload();
+    }
+
+});
+
+</script>
 </body>
 </html>

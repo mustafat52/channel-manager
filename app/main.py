@@ -11,9 +11,11 @@ from app.db.database import SessionLocal
 from app.db.models import Booking, Property, BookingStatus  # make sure BookingStatus is imported
 from app.api import auth
 
+from app.api.manual_booking import router as manual_booking_router
+
 
 app = FastAPI()
-
+app.include_router(manual_booking_router, prefix="/api")
 app.add_middleware(SessionMiddleware, secret_key="change-this-secret-key")
 
 templates = Jinja2Templates(directory="app/templates")
