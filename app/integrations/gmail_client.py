@@ -55,10 +55,20 @@ def fetch_booking_emails():
 
     for msg in messages:
 
+        
         message = service.users().messages().get(
             userId="me",
             id=msg["id"],
             format="raw"
+<<<<<<< HEAD
+=======
+        ).execute()
+
+        service.users().messages().modify(
+            userId="me",
+            id=msg["id"],
+            body={"removeLabelIds": ["UNREAD"]}
+>>>>>>> dev
         ).execute()
 
         raw = base64.urlsafe_b64decode(message["raw"])
