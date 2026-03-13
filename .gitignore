@@ -22,3 +22,5 @@ Thumbs.db
 
 credentials.json
 token.pickle    
+
+gmail_token.json

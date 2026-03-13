@@ -34,17 +34,21 @@ def dashboard(
     request: Request,
     platform: str = None,
     status: str = None,
-    window: int = 20,       # default 20-day checkout window
+    window: str = None,       # accept as string, parse safely below
     search: str = None,
 ):
     if not request.session.get("user"):
         return RedirectResponse(url="/login")
 
+    # Safely parse window — reject "None", empty string, or non-integers
+    window_int: int | None = None
+    if window is not None and window.strip().lstrip('-').isdigit():
+        window_int = int(window)
+
     db: Session = SessionLocal()
 
     try:
         today = date.today()
-        window_end = today + timedelta(days=window)
 
         query = db.query(Booking).join(Property)
 
@@ -52,18 +56,21 @@ def dashboard(
         if platform:
             query = query.filter(Booking.platform == platform)
 
-        # STATUS FILTER — cast string → Enum so SQLAlchemy comparison works
+        # STATUS FILTER
         if status:
             try:
                 query = query.filter(Booking.status == BookingStatus(status))
             except ValueError:
-                pass  # ignore invalid status values rather than crashing
+                pass
 
-        # CHECKOUT WINDOW FILTER — always applied (window defaults to 20)
-        query = query.filter(
-            Booking.checkout_date >= today,
-            Booking.checkout_date <= window_end,
-        )
+        # CHECKOUT WINDOW FILTER
+        if window_int is not None:
+            window_end = today + timedelta(days=window_int)
+
+            query = query.filter(
+                Booking.checkout_date >= today,
+                Booking.checkout_date <= window_end,
+            )
 
         # SEARCH FILTER
         if search:
@@ -100,7 +107,7 @@ def dashboard(
                 # active filter state — None means "not selected"
                 "selected_platform": platform,
                 "selected_status":   status,
-                "window":            window,
+                "window":            window_int,
                 "search":            search,
             },
         )
