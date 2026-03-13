@@ -34,11 +34,7 @@ def dashboard(
     request: Request,
     platform: str = None,
     status: str = None,
-<<<<<<< HEAD
-    window: int | None = None,       # default 20-day checkout window
-=======
-    window: str = None,       # accept as string, parse safely below
->>>>>>> dev
+    window: str = None,
     search: str = None,
 ):
     if not request.session.get("user"):
@@ -67,14 +63,8 @@ def dashboard(
             except ValueError:
                 pass
 
-        # CHECKOUT WINDOW FILTER
-<<<<<<< HEAD
-        if window is not None:
-            window_end = today + timedelta(days=window)
-=======
         if window_int is not None:
             window_end = today + timedelta(days=window_int)
->>>>>>> dev
 
             query = query.filter(
                 Booking.checkout_date >= today,
