@@ -1,10 +1,4 @@
 import os
-<<<<<<< HEAD
-import pickle
-import base64
-from email import message_from_bytes
-
-=======
 import base64
 import logging
 
@@ -12,16 +6,12 @@ from email import message_from_bytes
 from google.oauth2.credentials import Credentials
 from google.auth.exceptions import RefreshError
 from google_auth_oauthlib.flow import InstalledAppFlow
->>>>>>> dev
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
 # Suppress the noisy "file_cache is only supported with oauth2client<4.0.0" warning
 logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
 
-<<<<<<< HEAD
-SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
-=======
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -66,7 +56,6 @@ MAX_PAGES = 10
 
 TOKEN_PATH       = os.environ.get("GMAIL_TOKEN_PATH", "gmail_token.json")
 CREDENTIALS_PATH = os.environ.get("GOOGLE_CREDENTIALS_PATH", "credentials.json")
->>>>>>> dev
 
 
 def get_gmail_service():
@@ -76,16 +65,6 @@ def get_gmail_service():
     """
     creds = None
 
-<<<<<<< HEAD
-    if not os.path.exists("token.pickle"):
-        raise Exception("token.pickle not found")
-
-    with open("token.pickle", "rb") as token:
-        creds = pickle.load(token)
-
-    if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-=======
     if os.path.exists(TOKEN_PATH):
         try:
             creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
@@ -116,36 +95,10 @@ def get_gmail_service():
         with open(TOKEN_PATH, "w") as token_file:
             token_file.write(creds.to_json())
         os.chmod(TOKEN_PATH, 0o600)
->>>>>>> dev
 
     return build("gmail", "v1", credentials=creds)
 
 
-<<<<<<< HEAD
-def fetch_booking_emails():
-
-    service = get_gmail_service()
-
-    messages = []
-
-    response = service.users().messages().list(
-        userId="me",
-        q="is:read",
-        maxResults=50
-    ).execute()
-
-    messages.extend(response.get("messages", []))
-
-    while "nextPageToken" in response:
-        response = service.users().messages().list(
-            userId="me",
-            q="is:read",
-            pageToken=response["nextPageToken"]
-        ).execute()
-
-        messages.extend(response.get("messages", []))
-
-=======
 def _get_sender_domain(email_message) -> str:
     """Extract the domain from the From header of a parsed email."""
     from_header = email_message.get("From", "")
@@ -202,7 +155,6 @@ def fetch_booking_emails() -> list[dict]:
         )
 
     service = get_gmail_service()
->>>>>>> dev
     emails = []
     page_token = None
     pages_fetched = 0
@@ -290,58 +242,6 @@ def mark_email_as_read(service, message_id: str) -> None:
         logger.warning("Failed to mark email %s as read: %s", message_id, e)
 
 
-<<<<<<< HEAD
-        email_message = message_from_bytes(raw)
-
-        subject = email_message.get("subject")
-        sender = email_message.get("from")
-        date = email_message.get("date")
-
-        body = ""
-
-        if email_message.is_multipart():
-
-            for part in email_message.walk():
-
-                if part.get_content_type() == "text/plain":
-                    body = part.get_payload(decode=True).decode(errors="ignore")
-                    break
-
-        else:
-
-            body = email_message.get_payload(decode=True).decode(errors="ignore")
-
-        # fallback if plain text not found
-        if not body:
-
-            for part in email_message.walk():
-
-                if part.get_content_type() == "text/html":
-                    body = part.get_payload(decode=True).decode(errors="ignore")
-                    break
-
-        emails.append({
-            "message_id": msg["id"],
-            "subject": subject,
-            "from": sender,
-            "date": date,
-            "body": body
-        })
-
-    return emails
-
-
-def mark_email_read(message_id):
-
-    service = get_gmail_service()
-
-    service.users().messages().modify(
-        userId="me",
-        id=message_id,
-        body={"removeLabelIds": ["UNREAD"]}
-    ).execute()
-=======
 def _mark_as_read(service, message_id: str) -> None:
     """Internal convenience wrapper."""
     mark_email_as_read(service, message_id)
->>>>>>> dev
