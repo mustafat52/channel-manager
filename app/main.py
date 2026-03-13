@@ -34,11 +34,20 @@ def dashboard(
     request: Request,
     platform: str = None,
     status: str = None,
+<<<<<<< HEAD
     window: int | None = None,       # default 20-day checkout window
+=======
+    window: str = None,       # accept as string, parse safely below
+>>>>>>> dev
     search: str = None,
 ):
     if not request.session.get("user"):
         return RedirectResponse(url="/login")
+
+    # Safely parse window — reject "None", empty string, or non-integers
+    window_int: int | None = None
+    if window is not None and window.strip().lstrip('-').isdigit():
+        window_int = int(window)
 
     db: Session = SessionLocal()
 
@@ -59,8 +68,13 @@ def dashboard(
                 pass
 
         # CHECKOUT WINDOW FILTER
+<<<<<<< HEAD
         if window is not None:
             window_end = today + timedelta(days=window)
+=======
+        if window_int is not None:
+            window_end = today + timedelta(days=window_int)
+>>>>>>> dev
 
             query = query.filter(
                 Booking.checkout_date >= today,
@@ -102,7 +116,7 @@ def dashboard(
                 # active filter state — None means "not selected"
                 "selected_platform": platform,
                 "selected_status":   status,
-                "window":            window,
+                "window":            window_int,
                 "search":            search,
             },
         )

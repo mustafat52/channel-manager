@@ -317,7 +317,7 @@ td.modified  { color:var(--amber); font-weight:700; }
 <form method="get" action="/dashboard">
   {% if selected_platform %}<input type="hidden" name="platform" value="{{ selected_platform }}">{% endif %}
   {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
-  <input type="hidden" name="window" value="{{ window }}">
+  {% if window is not none %}<input type="hidden" name="window" value="{{ window }}">{% endif %}
   <input type="text" name="search" placeholder="Search guest, booking ID, property"
     value="{{ search if search else '' }}">
 </form>
@@ -337,13 +337,13 @@ td.modified  { color:var(--amber); font-weight:700; }
 
 {# Helper macro: build query string preserving all filters except the one being changed #}
 
-<a href="/dashboard?window={{ window }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+<a href="/dashboard{% if selected_status or window is not none or search %}?{% endif %}{% if window is not none %}window={{ window }}{% endif %}{% if selected_status %}{% if window is not none %}&{% endif %}status={{ selected_status }}{% endif %}{% if search %}{% if window is not none or selected_status %}&{% endif %}search={{ search }}{% endif %}"
    class="{% if not selected_platform %}active{% endif %}">
   All
 </a>
 
 {% for plat in ['airbnb', 'vrbo', 'booking'] %}
-<a href="/dashboard?platform={{ plat }}&window={{ window }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+<a href="/dashboard?platform={{ plat }}{% if window is not none %}&window={{ window }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
    class="{% if selected_platform == plat %}active{% endif %}">
   {{ 'Airbnb' if plat == 'airbnb' else ('Vrbo' if plat == 'vrbo' else 'Booking.com') }}
 </a>
@@ -355,11 +355,24 @@ td.modified  { color:var(--amber); font-weight:700; }
 <div class="filters">
 <span class="filter-section-label">Checkout in</span>
 
+<a href="/dashboard{% if selected_platform or selected_status or search %}?{% endif %}{% if selected_platform %}platform={{ selected_platform }}{% endif %}{% if selected_status %}{% if selected_platform %}&{% endif %}status={{ selected_status }}{% endif %}{% if search %}{% if selected_platform or selected_status %}&{% endif %}search={{ search }}{% endif %}"
+   class="{% if window is none %}active{% endif %}">
+  Any
+</a>
+
 {% for d in [3, 7, 14, 20, 30] %}
-<a href="/dashboard?window={{ d }}{% if selected_platform %}&platform={{ selected_platform }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
-   class="{% if window == d %}active{% endif %}">
+{% if window == d %}
+{# Already active — clicking again clears the window filter #}
+<a href="/dashboard{% if selected_platform or selected_status or search %}?{% endif %}{% if selected_platform %}platform={{ selected_platform }}{% endif %}{% if selected_status %}{% if selected_platform %}&{% endif %}status={{ selected_status }}{% endif %}{% if search %}{% if selected_platform or selected_status %}&{% endif %}search={{ search }}{% endif %}"
+   class="active">
   {{ d }} days
 </a>
+{% else %}
+<a href="/dashboard?window={{ d }}{% if selected_platform %}&platform={{ selected_platform }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+   class="">
+  {{ d }} days
+</a>
+{% endif %}
 {% endfor %}
 
 </div>
@@ -369,7 +382,7 @@ td.modified  { color:var(--amber); font-weight:700; }
 <span class="filter-section-label">Status</span>
 
 {% for s, label in [('confirmed','Confirmed'), ('cancelled','Cancelled'), ('modified','Modified')] %}
-<a href="/dashboard?status={{ s }}&window={{ window }}{% if selected_platform %}&platform={{ selected_platform }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+<a href="/dashboard?status={{ s }}{% if window is not none %}&window={{ window }}{% endif %}{% if selected_platform %}&platform={{ selected_platform }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
    class="{% if selected_status == s %}active{% endif %}">
   {{ label }}
 </a>
