@@ -493,10 +493,9 @@ td.modified  { color:var(--amber); font-weight:700; }
         <label class="form-label">Property</label>
         <div class="select-wrap">
           <select class="form-input form-select" name="property_name">
-            <option value="Ocean View Villa">Ocean View Villa</option>
-            <option value="Palm Beach Apartment">Palm Beach Apartment</option>
-            <option value="Sunset Retreat">Sunset Retreat</option>
-            <option value="City Center Loft">City Center Loft</option>
+            {% for prop in properties %}
+            <option value="{{ prop.name }}">{{ prop.name }}</option>
+            {% endfor %}
           </select>
           <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
@@ -588,10 +587,9 @@ td.modified  { color:var(--amber); font-weight:700; }
           <label class="form-label">Property</label>
           <div class="select-wrap">
             <select class="form-input form-select" name="property_name" id="upd-property">
-              <option value="Ocean View Villa">Ocean View Villa</option>
-              <option value="Palm Beach Apartment">Palm Beach Apartment</option>
-              <option value="Sunset Retreat">Sunset Retreat</option>
-              <option value="City Center Loft">City Center Loft</option>
+              {% for prop in properties %}
+              <option value="{{ prop.name }}">{{ prop.name }}</option>
+              {% endfor %}
             </select>
             <svg class="select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
@@ -1011,31 +1009,41 @@ async function lookupBooking(mode) {
     btn.textContent = 'Searching…';
     btn.disabled = true;
 
-    // Simulate API call — replace with real fetch
-    await new Promise(r => setTimeout(r, 800));
+    let booking;
+    try {
+        const res = await fetch('/api/lookup-booking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ booking_id: bookingId }),
+        });
+        const json = await res.json();
 
-    // Mock result — replace with real API data
-    const mockBooking = {
-        booking_id: bookingId,
-        guest: 'James Harrington',
-        property: 'Ocean View Villa',
-        checkin: '2024-09-15',
-        checkout: '2024-09-22',
-        status: 'confirmed',
-        platform: 'Airbnb'
-    };
+        if (!res.ok || !json.success) {
+            alert(json.error || 'Booking not found.');
+            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Look up';
+            btn.disabled = false;
+            return;
+        }
+
+        booking = json.booking;
+    } catch (err) {
+        alert('Network error — could not reach server.');
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Look up';
+        btn.disabled = false;
+        return;
+    }
 
     btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Look up';
     btn.disabled = false;
 
-    const statusClass = 'found-badge-' + mockBooking.status;
+    const statusClass = 'found-badge-' + booking.status;
 
     const cardHtml = `
-      <div class="found-row"><span class="found-label">Booking ID</span><span class="found-val">${mockBooking.booking_id}</span></div>
-      <div class="found-row"><span class="found-label">Guest</span><span class="found-val">${mockBooking.guest}</span></div>
-      <div class="found-row"><span class="found-label">Property</span><span class="found-val">${mockBooking.property}</span></div>
-      <div class="found-row"><span class="found-label">Dates</span><span class="found-val">${mockBooking.checkin} → ${mockBooking.checkout}</span></div>
-      <div class="found-row"><span class="found-label">Status</span><span class="found-val ${statusClass}">${mockBooking.status.charAt(0).toUpperCase()+mockBooking.status.slice(1)}</span></div>
+      <div class="found-row"><span class="found-label">Booking ID</span><span class="found-val">${booking.booking_id}</span></div>
+      <div class="found-row"><span class="found-label">Guest</span><span class="found-val">${booking.guest}</span></div>
+      <div class="found-row"><span class="found-label">Property</span><span class="found-val">${booking.property}</span></div>
+      <div class="found-row"><span class="found-label">Dates</span><span class="found-val">${booking.checkin} → ${booking.checkout}</span></div>
+      <div class="found-row"><span class="found-label">Status</span><span class="found-val ${statusClass}">${booking.status.charAt(0).toUpperCase()+booking.status.slice(1)}</span></div>
     `;
 
     if (mode === 'cancel') {
@@ -1055,14 +1063,14 @@ async function lookupBooking(mode) {
         document.getElementById('update-step2').style.display = 'flex';
         document.getElementById('update-step2').style.flexDirection = 'column';
         document.getElementById('update-step2').style.gap = '16px';
-        // Pre-fill form
-        document.getElementById('update-booking-id-hidden').value = mockBooking.booking_id;
-        document.getElementById('upd-guest').value = mockBooking.guest;
-        document.getElementById('upd-checkin').value = mockBooking.checkin;
-        document.getElementById('upd-checkout').value = mockBooking.checkout;
-        document.querySelector(`#upd-property option[value="${mockBooking.property}"]`) &&
-            (document.getElementById('upd-property').value = mockBooking.property);
-        const statusRadio = document.getElementById('upd-st-' + mockBooking.status);
+        // Pre-fill form with real data from DB
+        document.getElementById('update-booking-id-hidden').value = booking.booking_id;
+        document.getElementById('upd-guest').value = booking.guest;
+        document.getElementById('upd-checkin').value = booking.checkin;
+        document.getElementById('upd-checkout').value = booking.checkout;
+        document.querySelector(`#upd-property option[value="${booking.property}"]`) &&
+            (document.getElementById('upd-property').value = booking.property);
+        const statusRadio = document.getElementById('upd-st-' + booking.status);
         if (statusRadio) statusRadio.checked = true;
         const actionBtn = document.getElementById('drawerActionBtn');
         actionBtn.disabled = false;

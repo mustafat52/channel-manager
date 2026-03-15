@@ -37,10 +37,15 @@ class BookingStatus(str, enum.Enum):
 class Property(Base):
     __tablename__ = "properties"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
-    address = Column(Text, nullable=True)
-    is_active = Column(Boolean, default=True)
+    id         = Column(Integer, primary_key=True, index=True)
+    name       = Column(String(255), nullable=False)
+    address    = Column(Text, nullable=True)
+    is_active  = Column(Boolean, default=True)
+
+    # Platform-specific codes for matching incoming emails to real property names.
+    # Add more columns here (airbnb_code, booking_code) when those parsers need it.
+    vrbo_code  = Column(String(50), nullable=True, unique=True, index=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     bookings = relationship("Booking", back_populates="property")
@@ -132,17 +137,15 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-
+# ---------------------------
+# FAILED EMAILS
+# ---------------------------
 
 class FailedEmail(Base):
     __tablename__ = "failed_emails"
 
     id = Column(Integer, primary_key=True, index=True)
-
     message_id = Column(String, index=True)
-
     error_message = Column(String)
-
     email_body = Column(Text)
-
-    created_at = Column(DateTime, default=datetime.utcnow)    
+    created_at = Column(DateTime, default=datetime.utcnow)
