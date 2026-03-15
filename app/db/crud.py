@@ -22,9 +22,21 @@ def get_or_create_property(db: Session, property_name: str) -> Property:
 
     property_obj = Property(name=property_name)
     db.add(property_obj)
-    db.flush()  # ensures ID is generated
+    db.flush()
 
     return property_obj
+
+
+def get_property_by_vrbo_code(db: Session, vrbo_code: str) -> Optional[Property]:
+    """
+    Look up a Property by its Vrbo numeric code (e.g. "4034088" → Stassen).
+    Returns None if the code is not in the DB — caller decides how to handle.
+    """
+    return (
+        db.query(Property)
+        .filter(Property.vrbo_code == vrbo_code)
+        .first()
+    )
 
 
 # ---------------------------
@@ -73,7 +85,6 @@ def upsert_booking(
     )
 
     if existing_booking:
-        # Update existing
         existing_booking.guest_name = guest_name
         existing_booking.checkin_date = checkin_date
         existing_booking.checkout_date = checkout_date
@@ -81,7 +92,6 @@ def upsert_booking(
         existing_booking.last_email_message_id = message_id
         return existing_booking
 
-    # Create new
     new_booking = Booking(
         booking_id=booking_id,
         platform=platform,
