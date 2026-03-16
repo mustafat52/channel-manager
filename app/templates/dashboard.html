@@ -2,7 +2,6 @@
 <html>
 <head>
 <title>Channel Manager Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -208,121 +207,6 @@ td.modified  { color:var(--amber); font-weight:700; }
     margin-right: 4px;
 }
 
-
-/* ── RESPONSIVE ─────────────────────────────────────────────────────── */
-
-@media (max-width: 768px) {
-
-    /* NAV */
-    .topnav { padding: 0 16px; height: 54px; }
-    .nav-brand h1 { font-size: 14px; }
-    .nav-pill { padding: 5px 10px; font-size: 11px; }
-
-    /* PAGE */
-    .page { padding: 14px 12px 100px; }
-
-    /* STATS — 2 columns, 5th card spans full width */
-    .stats {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-bottom: 16px;
-    }
-    .stats .card:last-child { grid-column: 1 / -1; }
-    .card { padding: 14px 14px; border-radius: 14px; gap: 12px; }
-    .card-ico { width: 38px; height: 38px; font-size: 17px; border-radius: 10px; flex-shrink: 0; }
-    .card h2 { font-size: 26px; }
-    .card p { font-size: 11px; }
-
-    /* TOOLBAR */
-    .toolbar { gap: 8px; margin-bottom: 10px; }
-    .toolbar-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-
-    /* Search full width */
-    .search-box { width: 100%; }
-    .search-box form { width: 100%; }
-    .search-box input {
-        width: 100%;
-        padding: 10px 12px;
-        border-radius: 10px;
-        font-size: 14px;
-    }
-
-    /* Filter labels hidden on mobile to save space */
-    .filter-section-label { display: none; }
-
-    /* Filter pills smaller */
-    .filters { gap: 6px; }
-    .filters a { padding: 6px 13px; font-size: 12px; }
-
-    /* Manual entry button full width */
-    .manual-entry-wrap { width: 100%; }
-    .btn-add-booking { width: 100%; justify-content: center; }
-
-    /* Table hidden — show mobile cards instead */
-    .table-wrap table { display: none; }
-    .mobile-cards { display: flex; flex-direction: column; }
-}
-
-/* Mobile booking cards — hidden on desktop */
-.mobile-cards { display: none; }
-
-.booking-card {
-    padding: 14px 16px;
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-}
-.booking-card:first-child { border-top: none; }
-
-.bc-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    gap: 8px;
-}
-.bc-guest {
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--navy);
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.bc-meta {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
-}
-.bc-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--muted);
-    padding: 3px 0;
-    border-bottom: 1px solid var(--surface-2);
-}
-.bc-row:last-child { border-bottom: none; }
-.bc-row span:last-child { color: var(--text); font-weight: 600; }
-
-.status-pill {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 20px;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-.status-pill.confirmed { background: #e6f7f0; color: var(--green); }
-.status-pill.cancelled { background: #fdf0ef; color: var(--red); }
-.status-pill.modified  { background: #fdf4e8; color: var(--amber); }
 </style>
 </head>
 
@@ -561,7 +445,7 @@ td.modified  { color:var(--amber); font-weight:700; }
 {% endfor %}
 
 </tbody>
-
+</table>
 
 <!-- MOBILE CARDS (visible only on small screens) -->
 <div class="mobile-cards">
@@ -1033,6 +917,50 @@ td.modified  { color:var(--amber); font-weight:700; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 0.8s linear infinite; }
+
+@media (max-width: 768px) {
+    /* Drawer becomes full-width bottom sheet */
+    .booking-drawer {
+        top: auto !important;
+        bottom: 0 !important;
+        right: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 92vh !important;
+        border-left: none !important;
+        border-top: 1.5px solid var(--border) !important;
+        border-radius: 20px 20px 0 0 !important;
+        transform: translateY(100%) !important;
+        transition: transform 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+    }
+    .booking-drawer.open {
+        transform: translateY(0) !important;
+    }
+
+    /* Header compact */
+    .drawer-header { padding: 16px 18px 14px; }
+    .drawer-title { font-size: 15px; }
+    .drawer-icon { width: 36px; height: 36px; border-radius: 10px; }
+
+    /* Body padding */
+    .drawer-body { padding: 16px 18px; gap: 14px; }
+
+    /* Form rows stack on mobile */
+    .form-row { grid-template-columns: 1fr !important; gap: 14px; }
+
+    /* Lookup input+button stack */
+    #cancel-step1 .form-group > div,
+    #update-step1 .form-group > div {
+        flex-direction: column !important;
+    }
+    .btn-lookup { width: 100%; justify-content: center; }
+
+    /* Footer */
+    .drawer-footer { padding: 14px 18px 28px; }
+
+    /* Manual menu full width on mobile */
+    .manual-menu { width: 100%; right: 0; left: 0; }
+}
 
 </style>
 
