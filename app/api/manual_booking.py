@@ -5,7 +5,8 @@ Dashboard manual entry routes.
 Notifications are triggered after every DB write — same as email-sourced bookings.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends,Request
+from app.utils.auth_dependency import require_login
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -14,7 +15,15 @@ from typing import Optional
 from app.db.database import get_db
 from app.db.models import Booking, Property, BookingStatus
 from app.db import crud
-from app.services.notification_service import notify_new_booking, notify_cancellation
+from app.services.notification_service import (
+    notify_new_booking,
+    notify_cancellation,
+    notify_modification,
+    _fmt,
+)
+
+import logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -45,7 +54,8 @@ def booking_to_dict(booking: Booking) -> dict:
 # ── POST /api/manual-booking  (Add) ───────────────────────────────────────────
 
 @router.post("/manual-booking")
-def create_manual_booking(data: dict, db: Session = Depends(get_db)):
+def create_manual_booking(data: dict, db: Session = Depends(get_db), _=Depends(require_login)):
+
     # Duplicate check
     if db.query(Booking).filter(Booking.booking_id == data["booking_id"]).first():
         return JSONResponse(
@@ -82,7 +92,7 @@ def create_manual_booking(data: dict, db: Session = Depends(get_db)):
 # ── POST /api/lookup-booking  (used by Cancel & Update drawers) ───────────────
 
 @router.post("/lookup-booking")
-def lookup_booking(data: dict, db: Session = Depends(get_db)):
+def lookup_booking(data: dict, db: Session = Depends(get_db), _=Depends(require_login)):
     booking_id = (data.get("booking_id") or "").strip()
     if not booking_id:
         return JSONResponse(status_code=400, content={"success": False, "error": "booking_id is required."})
@@ -106,7 +116,7 @@ def lookup_booking(data: dict, db: Session = Depends(get_db)):
 # ── POST /api/cancel-booking ──────────────────────────────────────────────────
 
 @router.post("/cancel-booking")
-def cancel_booking(data: dict, db: Session = Depends(get_db)):
+def cancel_booking(data: dict, db: Session = Depends(get_db), _=Depends(require_login)):
     booking_id = (data.get("booking_id") or "").strip()
     if not booking_id:
         return JSONResponse(status_code=400, content={"success": False, "error": "booking_id is required."})
@@ -147,11 +157,11 @@ def cancel_booking(data: dict, db: Session = Depends(get_db)):
 # ── POST /api/update-booking ──────────────────────────────────────────────────
 
 @router.post("/update-booking")
-def update_booking(data: dict, db: Session = Depends(get_db)):
+def update_booking(data: dict, db: Session = Depends(get_db), _=Depends(require_login)):
     """
     Updates booking fields from dashboard.
-    No notification on updates — only on new bookings and cancellations.
-    Add notify_modification() here in future if needed.
+    Captures old values before applying changes, builds a diff,
+    then sends a modification notification showing exactly what changed.
     """
     booking_id = (data.get("booking_id") or "").strip()
     if not booking_id:
@@ -171,6 +181,14 @@ def update_booking(data: dict, db: Session = Depends(get_db)):
         )
 
     try:
+        # ── Snapshot old values BEFORE any changes ────────────────────
+        old_property = booking.property.name if booking.property else None
+        old_guest    = booking.guest_name
+        old_checkin  = booking.checkin_date
+        old_checkout = booking.checkout_date
+        old_status   = booking.status.value
+
+        # ── Apply changes ─────────────────────────────────────────────
         if data.get("property_name"):
             prop = crud.get_or_create_property(db=db, property_name=data["property_name"])
             booking.property_id = prop.id
@@ -188,6 +206,33 @@ def update_booking(data: dict, db: Session = Depends(get_db)):
             booking.status = BookingStatus(data["status"])
 
         db.commit()
+        db.refresh(booking)  # loads updated property relationship
+
+        # ── Build diff — only include fields that actually changed ─────
+        changes = {}
+
+        new_property = booking.property.name if booking.property else None
+        if data.get("property_name") and old_property != new_property:
+            changes["Property"] = (old_property or "N/A", new_property or "N/A")
+
+        if data.get("guest_name") and old_guest != booking.guest_name:
+            changes["Guest"] = (old_guest or "N/A", booking.guest_name or "N/A")
+
+        if data.get("checkin_date") and old_checkin != booking.checkin_date:
+            changes["Check-in"] = (_fmt(old_checkin), _fmt(booking.checkin_date))
+
+        if data.get("checkout_date") and old_checkout != booking.checkout_date:
+            changes["Check-out"] = (_fmt(old_checkout), _fmt(booking.checkout_date))
+
+        if data.get("status") and old_status != booking.status.value:
+            changes["Status"] = (old_status, booking.status.value)
+
+        # ── Notify only if something actually changed ─────────────────
+        if changes:
+            notify_modification(db=db, booking=booking, changes=changes)
+        else:
+            logger.info("No real changes for %s — skipping notification.", booking_id)
+
         return {"success": True}
     except Exception as e:
         db.rollback()

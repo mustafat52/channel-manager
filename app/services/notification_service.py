@@ -5,10 +5,11 @@ All notifications are triggered from Booking objects in the database.
 Sources (email parsing, manual entry, future APIs) are irrelevant here.
 
 Public functions:
-    notify_new_booking(db, booking)      — instant new booking alert
-    notify_cancellation(db, booking)     — cancellation alert
-    send_tomorrow_cleanings(db)          — scheduler: 8PM IST daily
-    send_upcoming_cleanings(db)          — scheduler: 6AM IST daily
+    notify_new_booking(db, booking)              — instant new booking alert
+    notify_cancellation(db, booking)             — cancellation alert
+    notify_modification(db, booking, changes)    — modification alert with diff
+    send_tomorrow_cleanings(db)                  — scheduler: 8PM IST daily
+    send_upcoming_cleanings(db)                  — scheduler: 6AM IST daily
 """
 
 import requests
@@ -18,6 +19,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.models import Booking, Property, BookingStatus, NotificationLog
 
+import logging
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────
 # INTERNAL: RAW WHATSAPP SENDER
@@ -42,12 +45,13 @@ def _send_whatsapp_message(message: str) -> dict:
         "text": {"body": message.strip()},
     }
 
-    print(f"[WhatsApp] Sending:\n{message.strip()}\n")
+    logger.debug("Sending WhatsApp message.")
+
 
     response = requests.post(url, headers=headers, json=payload)
     result = response.json()
 
-    print(f"[WhatsApp] Response: {result}")
+    logger.debug("Sending WhatsApp message.")
     return result
 
 
@@ -73,6 +77,19 @@ def _log_notification(
 
 
 # ─────────────────────────────────────────────
+# INTERNAL: FORMAT A DATE VALUE FOR DISPLAY
+# Handles both date objects and plain strings
+# ─────────────────────────────────────────────
+
+def _fmt(value) -> str:
+    if value is None:
+        return "N/A"
+    if hasattr(value, "strftime"):
+        return value.strftime("%b %d")
+    return str(value)
+
+
+# ─────────────────────────────────────────────
 # 1. INSTANT BOOKING NOTIFICATION
 # ─────────────────────────────────────────────
 
@@ -89,7 +106,7 @@ def notify_new_booking(db: Session, booking: Booking):
     called multiple times for the same booking.
     """
     if booking.notified_instant:
-        print(f"[Notify] Booking {booking.booking_id} already notified — skipping.")
+        logger.info("Booking %s already notified — skipping.", booking.booking_id)
         return
 
     property_name = booking.property.name if booking.property else "Unknown Property"
@@ -102,6 +119,7 @@ def notify_new_booking(db: Session, booking: Booking):
 
 🏠 {property_name}
 👤 {booking.guest_name or 'N/A'}
+🔖 {booking.booking_id}
 
 📅 {checkin} → {checkout}  ({nights} nights)"""
 
@@ -141,11 +159,14 @@ def notify_cancellation(db: Session, booking: Booking):
 
 🏠 {property_name}
 👤 {booking.guest_name or 'N/A'}
-📅 {checkin} → {checkout}  ({nights} nights)
+🔖 {booking.booking_id}
 
-🔖 {booking.booking_id}"""
+📅 {checkin} → {checkout}  ({nights} nights)"""
 
     result = _send_whatsapp_message(message)
+
+    booking.notified_cancellation = True  # ← add this line
+    db.commit()
 
     _log_notification(
         db=db,
@@ -157,7 +178,67 @@ def notify_cancellation(db: Session, booking: Booking):
 
 
 # ─────────────────────────────────────────────
-# 3. TOMORROW CLEANING REMINDER  (8PM IST)
+# 3. MODIFICATION NOTIFICATION
+# ─────────────────────────────────────────────
+
+def notify_modification(db: Session, booking: Booking, changes: dict):
+    """
+    Sends a WhatsApp alert when a booking is modified, showing exactly
+    what changed (old value → new value).
+
+    Triggered by:
+        - manual_booking.update_booking() from dashboard
+        - booking_service.process_email() when a modification email is parsed
+
+    changes dict format:
+        {
+            "field_label": ("old_value", "new_value"),
+            ...
+        }
+
+    Example:
+        {
+            "Check-out": ("Mar 14", "Mar 18"),
+            "Status":    ("confirmed", "modified"),
+        }
+
+    Only fields that actually changed should be included — callers are
+    responsible for building the diff before calling this function.
+    """
+    if not changes:
+        logger.info("No changes detected for %s — skipping notification.", booking.booking_id)
+
+        return
+
+    property_name = booking.property.name if booking.property else "Unknown Property"
+
+    change_lines = "\n".join(
+        f"  {label}: {old} → {new}"
+        for label, (old, new) in changes.items()
+    )
+
+    message = f"""✏️ *BOOKING MODIFIED — {booking.platform.capitalize()}*
+
+🏠 {property_name}
+👤 {booking.guest_name or 'N/A'}
+🔖 {booking.booking_id}
+
+Changes:
+{change_lines}"""
+
+    result = _send_whatsapp_message(message)
+
+    _log_notification(
+        db=db,
+        booking_id=booking.id,
+        notification_type="modification",
+        delivery_status="delivered" if "messages" in result else "failed",
+        response_payload=result,
+    )
+
+
+# ─────────────────────────────────────────────
+# 4. TOMORROW CLEANING REMINDER  (8PM IST)
 # ─────────────────────────────────────────────
 
 def send_tomorrow_cleanings(db: Session):
@@ -180,7 +261,7 @@ def send_tomorrow_cleanings(db: Session):
     )
 
     if not bookings:
-        print(f"[Scheduler] No checkouts tomorrow ({tomorrow}) — skipping.")
+        logger.info("No checkouts tomorrow (%s) — skipping.", tomorrow)
         return
 
     count = len(bookings)
@@ -202,11 +283,11 @@ def send_tomorrow_cleanings(db: Session):
             response_payload=result,
         )
 
-    print(f"[Scheduler] Tomorrow cleanings sent — {len(bookings)} properties.")
+    logger.info("Tomorrow cleanings sent — %d properties.", len(bookings))
 
 
 # ─────────────────────────────────────────────
-# 4. 20-DAY CLEANING SCHEDULE  (6AM IST)
+# 5. 20-DAY CLEANING SCHEDULE  (6AM IST)
 # ─────────────────────────────────────────────
 
 def send_upcoming_cleanings(db: Session):
@@ -231,7 +312,7 @@ def send_upcoming_cleanings(db: Session):
     )
 
     if not bookings:
-        print(f"[Scheduler] No cleanings in next 20 days — skipping.")
+        logger.info("No cleanings in next 20 days — skipping.")
         return
 
     count = len(bookings)
@@ -256,4 +337,4 @@ def send_upcoming_cleanings(db: Session):
             response_payload=result,
         )
 
-    print(f"[Scheduler] 20-day schedule sent — {len(bookings)} bookings.")
+    logger.info("20-day schedule sent — %d bookings.", len(bookings))

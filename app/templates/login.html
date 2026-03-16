@@ -30,7 +30,6 @@ body {
     align-items: center;
     justify-content: center;
     padding: 24px;
-    /* Soft radial glow */
     background-image:
         radial-gradient(ellipse at 40% 30%, rgba(91,155,213,0.14) 0%, transparent 55%),
         radial-gradient(ellipse at 70% 80%, rgba(91,155,213,0.08) 0%, transparent 45%);
@@ -47,7 +46,6 @@ body {
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Brand above card */
 .brand {
     text-align: center;
     margin-bottom: 24px;
@@ -76,7 +74,6 @@ body {
     margin-top: 3px;
 }
 
-/* Card */
 .card {
     background: var(--surface);
     border-radius: 22px;
@@ -85,7 +82,6 @@ body {
     box-shadow: 0 4px 32px rgba(50,80,120,0.1);
 }
 
-/* Fields */
 .field {
     margin-bottom: 18px;
     animation: fadeUp 0.4s ease both;
@@ -110,7 +106,8 @@ label {
 }
 
 input[type="email"],
-input[type="password"] {
+input[type="password"],
+input[type="text"] {
     width: 100%;
     padding: 13px 16px;
     border: 1.5px solid var(--border);
@@ -122,6 +119,7 @@ input[type="password"] {
     background: var(--bg);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    appearance: none;
     -webkit-appearance: none;
 }
 
@@ -136,8 +134,35 @@ input::placeholder {
     font-weight: 400;
 }
 
-/* Button */
-button[type="submit"] {
+/* Password wrapper */
+.password-wrap {
+    position: relative;
+}
+
+.password-wrap input {
+    padding-right: 46px;
+}
+
+/* Toggle — fully self-contained, zero inheritance from other button rules */
+.toggle-pw {
+    all: unset;
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    transition: color 0.15s;
+}
+.toggle-pw:hover { color: var(--navy); }
+
+/* Submit button — class scoped so it never touches the toggle */
+.btn-signin {
     width: 100%;
     padding: 14px;
     background: var(--navy);
@@ -153,17 +178,17 @@ button[type="submit"] {
     margin-top: 6px;
     transition: background 0.2s, transform 0.12s, box-shadow 0.2s;
     box-shadow: 0 4px 14px rgba(36,63,98,0.22);
+    display: block;
 }
 
-button[type="submit"]:hover {
+.btn-signin:hover {
     background: var(--blue-deep);
     box-shadow: 0 6px 20px rgba(58,123,191,0.32);
     transform: translateY(-1px);
 }
 
-button[type="submit"]:active { transform: translateY(0); }
+.btn-signin:active { transform: translateY(0); }
 
-/* Footer note */
 .footer-note {
     text-align: center;
     margin-top: 20px;
@@ -171,7 +196,6 @@ button[type="submit"]:active { transform: translateY(0); }
     color: var(--muted);
     font-weight: 500;
 }
-
 
 @media (max-width: 480px) {
     .card { padding: 28px 22px 24px; border-radius: 18px; }
@@ -200,11 +224,22 @@ button[type="submit"]:active { transform: translateY(0); }
 
             <div class="field">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="••••••••" required>
+                <div class="password-wrap">
+                    <input type="password" id="password" name="password" placeholder="••••••••" required>
+                    <button type="button" class="toggle-pw" onclick="togglePassword()" aria-label="Toggle password visibility">
+                        <svg id="icon-show" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M1 9C1 9 4 3 9 3s8 6 8 6-3 6-8 6-8-6-8-6z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                        <svg id="icon-hide" width="18" height="18" viewBox="0 0 18 18" fill="none" style="display:none">
+                            <path d="M1 1l16 16M7.5 7.6A2.5 2.5 0 0 0 11.4 11M5 4.1C3.1 5.3 1.8 7 1 9c1.6 3.3 4.9 6 8 6a8.4 8.4 0 0 0 4-1.1M13.4 13C15.1 11.8 16.3 10.1 17 9c-1.6-3.3-4.9-6-8-6a8 8 0 0 0-2.9.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <div class="field">
-                <button type="submit">Sign in</button>
+                <button type="submit" class="btn-signin">Sign in</button>
             </div>
 
         </form>
@@ -213,6 +248,19 @@ button[type="submit"]:active { transform: translateY(0); }
     <p class="footer-note">Airbnb · Vrbo · Direct — all in one place</p>
 
 </div>
+
+<script>
+function togglePassword() {
+    const input    = document.getElementById('password');
+    const iconShow = document.getElementById('icon-show');
+    const iconHide = document.getElementById('icon-hide');
+    const isHidden = input.type === 'password';
+
+    input.type             = isHidden ? 'text' : 'password';
+    iconShow.style.display = isHidden ? 'none' : '';
+    iconHide.style.display = isHidden ? ''     : 'none';
+}
+</script>
 
 </body>
 </html>

@@ -1,22 +1,11 @@
-<<<<<<< HEAD
-import logging
-
-from app.integrations.gmail_client import fetch_booking_emails, mark_email_read
-from app.services.booking_service import process_email
-=======
-
-
 from dotenv import load_dotenv
 load_dotenv()
 
-import time
-import signal
 import logging
-import sys
+
 
 from app.integrations.gmail_client import fetch_booking_emails, mark_email_as_read
 from app.services.booking_service import process_email, store_failed_email, EmailAlreadyProcessed
->>>>>>> dev
 from app.db.database import SessionLocal
 
 # ---------------------------------------------------------------------------
@@ -34,59 +23,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-<<<<<<< HEAD
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-def run_worker():
-
-    logger.info("Email worker started")
-
-    db = SessionLocal()
-
-    try:
-
-        emails = fetch_booking_emails()
-
-        logger.info(f"{len(emails)} unread emails fetched")
-
-        for email in emails:
-
-            message_id = email["message_id"]
-
-            try:
-
-                logger.info(f"Processing email {message_id}")
-
-                process_email(
-                    db,
-                    email["body"],
-                    message_id
-                )
-
-                mark_email_read(message_id)
-
-            except EmailAlreadyProcessed:
-
-                logger.info(f"Skipping already processed email {message_id}")
-
-                mark_email_read(message_id)
-
-            except Exception as e:
-
-                logger.error(f"Failed email {message_id}: {str(e)}")
-
-                store_failed_email(
-                    db,
-                    message_id,
-                    email["body"],
-                    str(e)
-                )
-
-    finally:
-        db.close()
-=======
 # ---------------------------------------------------------------------------
 # POLL INTERVAL & BACKOFF
 # Normal interval: 60 seconds.
@@ -104,15 +40,7 @@ BACKOFF_STEPS = [60, 120, 300]   # 1 min → 2 min → 5 min, then stays at 5 mi
 # the current batch finish before the process exits — no half-processed emails,
 # no dangling DB sessions.
 # ---------------------------------------------------------------------------
-_shutdown_requested = False
 
-def _handle_shutdown(signum, frame):
-    global _shutdown_requested
-    logger.info("Shutdown signal received — will exit after current batch completes.")
-    _shutdown_requested = True
-
-signal.signal(signal.SIGTERM, _handle_shutdown)
-signal.signal(signal.SIGINT, _handle_shutdown)
 
 
 # ---------------------------------------------------------------------------
@@ -166,64 +94,3 @@ def _process_single_email(email: dict) -> None:
 
     finally:
         db.close()
-
-
-# ---------------------------------------------------------------------------
-# MAIN WORKER LOOP
-# ---------------------------------------------------------------------------
-def run_worker():
-    logger.info("Email worker started.")
-    consecutive_failures = 0
-
-    while not _shutdown_requested:
-
-        logger.info("Polling Gmail for new booking emails...")
-
-        try:
-            emails = fetch_booking_emails()
-            logger.info("Found %d unread booking email(s) to process.", len(emails))
-
-            for email in emails:
-                if _shutdown_requested:
-                    # Respect shutdown mid-batch — finish current email, then exit
-                    logger.info("Shutdown requested — stopping after current email.")
-                    break
-                _process_single_email(email)
-
-            # Reset backoff counter on a successful poll
-            consecutive_failures = 0
-
-        except RuntimeError as e:
-            # RuntimeError is raised by get_gmail_service() when the OAuth
-            # token is revoked and cannot be refreshed automatically.
-            # This requires manual intervention — alert loudly and stop.
-            logger.critical(
-                "Gmail authentication failed — worker is stopping. "
-                "Re-run the auth flow to generate a new token. Error: %s", e
-            )
-            # TODO: Send alert here (Slack webhook / email / SMS)
-            sys.exit(1)
-
-        except Exception as e:
-            # Network error, Gmail API unavailable, etc.
-            consecutive_failures += 1
-            backoff = BACKOFF_STEPS[min(consecutive_failures - 1, len(BACKOFF_STEPS) - 1)]
-            logger.error(
-                "Gmail fetch failed (attempt %d): %s — retrying in %ds.",
-                consecutive_failures, e, backoff
-            )
-            time.sleep(backoff)
-            continue
-
-        # Normal sleep between polls — interruptible by shutdown flag
-        for _ in range(POLL_INTERVAL_SECONDS):
-            if _shutdown_requested:
-                break
-            time.sleep(1)
-
-    logger.info("Worker shut down cleanly.")
->>>>>>> dev
-
-
-if __name__ == "__main__":
-    run_worker()
