@@ -63,7 +63,7 @@ def create_scheduler() -> BackgroundScheduler:
     # 6:00 AM IST — 20-day rolling schedule
     scheduler.add_job(
         job_upcoming_cleanings,
-        trigger=CronTrigger(hour=8, minute=15, timezone=IST),
+        trigger=CronTrigger(hour=6, minute=0, timezone=IST),
         id="upcoming_cleanings",
         name="20-day cleaning schedule",
         replace_existing=True,
