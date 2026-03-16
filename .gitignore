@@ -23,7 +23,5 @@ Thumbs.db
 credentials.json
 token.pickle    
 
-<<<<<<< HEAD
-=======
 gmail_token.json
->>>>>>> dev
+
