@@ -97,6 +97,7 @@ def dashboard(
         vrbo_count      = db.query(func.count(Booking.id)).filter(Booking.platform == "vrbo").scalar()
         booking_count   = db.query(func.count(Booking.id)).filter(Booking.platform == "booking").scalar()
         confirmed_count = db.query(func.count(Booking.id)).filter(Booking.status == BookingStatus("confirmed")).scalar()
+        properties = db.query(Property).filter(Property.is_active == True).order_by(Property.name).all()
 
         return templates.TemplateResponse(
             "dashboard.html",
@@ -112,6 +113,7 @@ def dashboard(
                 "selected_status":   status,
                 "window":            window_int,
                 "search":            search,
+                "properties":        properties,
             },
         )
 
