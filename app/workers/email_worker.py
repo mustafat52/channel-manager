@@ -44,15 +44,7 @@ BACKOFF_STEPS = [60, 120, 300]   # 1 min → 2 min → 5 min, then stays at 5 mi
 # the current batch finish before the process exits — no half-processed emails,
 # no dangling DB sessions.
 # ---------------------------------------------------------------------------
-_shutdown_requested = False
 
-def _handle_shutdown(signum, frame):
-    global _shutdown_requested
-    logger.info("Shutdown signal received — will exit after current batch completes.")
-    _shutdown_requested = True
-
-signal.signal(signal.SIGTERM, _handle_shutdown)
-signal.signal(signal.SIGINT, _handle_shutdown)
 
 
 # ---------------------------------------------------------------------------

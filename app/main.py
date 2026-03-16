@@ -5,7 +5,19 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from starlette.middleware.sessions import SessionMiddleware
 from datetime import date, timedelta
+
+
 import os
+
+import logging
+logger = logging.getLogger(__name__)
+
+# Warn loudly if TEST_MODE is on at startup
+if os.getenv("TEST_MODE", "false").lower() == "true":
+    logger.warning("TEST_MODE is ON — Gmail sender allowlist is disabled. Set TEST_MODE=false on Railway.")
+
+
+
 from app.db.database import SessionLocal
 from app.db.models import Booking, Property, BookingStatus
 from app.api import auth
@@ -15,7 +27,11 @@ from app.workers.notification_worker import create_scheduler
 
 app = FastAPI()
 app.include_router(manual_booking_router, prefix="/api")
-app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SECRET_KEY", "change-this-secret-key"))
+
+_session_secret = os.environ.get("SECRET_KEY")
+if not _session_secret:
+    raise RuntimeError("SECRET_KEY is not set in environment variables.")
+app.add_middleware(SessionMiddleware, secret_key=_session_secret)
 
 templates = Jinja2Templates(directory="app/templates")
 app.include_router(auth.router)
@@ -28,13 +44,15 @@ def start_scheduler():
     scheduler = create_scheduler()
     scheduler.start()
     app.state.scheduler = scheduler
-    print("[Scheduler] Started — 6AM IST (20-day schedule) · 8PM IST (tomorrow reminder)")
-
+    logger.info("Scheduler started — 6AM IST (20-day schedule) · 8PM IST (tomorrow reminder)")
 
 @app.on_event("shutdown")
 def stop_scheduler():
-    app.state.scheduler.shutdown(wait=False)
-    print("[Scheduler] Stopped.")
+    try:
+        app.state.scheduler.shutdown(wait=False)
+        logger.info("Scheduler stopped.")
+    except Exception:
+        pass
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
@@ -82,6 +100,7 @@ def dashboard(
             )
 
         if search:
+            search = search[:100]
             query = query.filter(
                 or_(
                     Booking.guest_name.ilike(f"%{search}%"),
@@ -134,46 +153,56 @@ def analytics(request: Request):
     db: Session = SessionLocal()
 
     try:
-        all_bookings = db.query(Booking).join(Property).all()
-        total = len(all_bookings)
+        today = dt_date.today()
 
-        def _count(platform=None, status=None):
-            q = db.query(func.count(Booking.id))
-            if platform: q = q.filter(Booking.platform == platform)
-            if status:   q = q.filter(Booking.status == BookingStatus(status))
-            return q.scalar() or 0
+        # ── 1. Total count ────────────────────────────────────────────
+        total = db.query(func.count(Booking.id)).scalar() or 0
 
-        airbnb_count  = _count("airbnb")
-        vrbo_count    = _count("vrbo")
-        booking_count = _count("booking")
+        # ── 2. All platform+status combos in ONE query ────────────────
+        rows = (
+            db.query(
+                Booking.platform,
+                Booking.status,
+                func.count(Booking.id).label("cnt"),
+            )
+            .group_by(Booking.platform, Booking.status)
+            .all()
+        )
 
-        confirmed = _count(status="confirmed")
-        cancelled = _count(status="cancelled")
+        # Build lookup: counts[(platform, status)] = count
+        counts = {}
+        for row in rows:
+            counts[(row.platform, row.status.value)] = row.cnt
+
+        def _c(platform, status):
+            return counts.get((platform, status), 0)
+
+        airbnb_count  = sum(v for (p, s), v in counts.items() if p == "airbnb")
+        vrbo_count    = sum(v for (p, s), v in counts.items() if p == "vrbo")
+        booking_count = sum(v for (p, s), v in counts.items() if p == "booking")
+
+        confirmed = sum(v for (p, s), v in counts.items() if s == "confirmed")
+        cancelled = sum(v for (p, s), v in counts.items() if s == "cancelled")
 
         confirmed_pct = round(confirmed / total * 100) if total else 0
         cancelled_pct = round(cancelled / total * 100) if total else 0
 
         platform_counts = {"airbnb": airbnb_count, "vrbo": vrbo_count, "booking": booking_count}
-        top_platform_key = max(platform_counts, key=platform_counts.get)
+        top_platform_key = max(platform_counts, key=platform_counts.get) if total else "airbnb"
         top_platform_labels = {"airbnb": "Airbnb", "vrbo": "Vrbo", "booking": "Booking.com"}
         top_platform = top_platform_labels[top_platform_key]
         top_platform_pct = round(platform_counts[top_platform_key] / total * 100) if total else 0
 
-        # Status breakdown per platform
-        def _pstatus(platform, status):
-            return _count(platform, status)
+        airbnb_confirmed  = _c("airbnb",  "confirmed")
+        airbnb_cancelled  = _c("airbnb",  "cancelled")
+        airbnb_modified   = _c("airbnb",  "modified")
+        vrbo_confirmed    = _c("vrbo",    "confirmed")
+        vrbo_cancelled    = _c("vrbo",    "cancelled")
+        vrbo_modified     = _c("vrbo",    "modified")
+        booking_confirmed = _c("booking", "confirmed")
+        booking_cancelled = _c("booking", "cancelled")
+        booking_modified  = _c("booking", "modified")
 
-        airbnb_confirmed  = _pstatus("airbnb",  "confirmed")
-        airbnb_cancelled  = _pstatus("airbnb",  "cancelled")
-        airbnb_modified   = _pstatus("airbnb",  "modified")
-        vrbo_confirmed    = _pstatus("vrbo",     "confirmed")
-        vrbo_cancelled    = _pstatus("vrbo",     "cancelled")
-        vrbo_modified     = _pstatus("vrbo",     "modified")
-        booking_confirmed = _pstatus("booking",  "confirmed")
-        booking_cancelled = _pstatus("booking",  "cancelled")
-        booking_modified  = _pstatus("booking",  "modified")
-
-        # Cancellation rate per platform
         def _cancel_pct(total_p, cancelled_p):
             return round(cancelled_p / total_p * 100) if total_p else 0
 
@@ -181,32 +210,43 @@ def analytics(request: Request):
         vrbo_cancel_pct    = _cancel_pct(vrbo_count,    vrbo_cancelled)
         booking_cancel_pct = _cancel_pct(booking_count, booking_cancelled)
 
-        # Monthly trend — last 6 months
-        today = dt_date.today()
+        # ── 3. Monthly trend — ONE query ──────────────────────────────
         months = []
         for i in range(5, -1, -1):
             m = (today.month - i - 1) % 12 + 1
             y = today.year - ((today.month - i - 1) // 12)
             months.append((y, m))
 
+        trend_rows = (
+            db.query(
+                Booking.platform,
+                func.extract("year",  Booking.created_at).label("yr"),
+                func.extract("month", Booking.created_at).label("mo"),
+                func.count(Booking.id).label("cnt"),
+            )
+            .filter(
+                func.extract("year",  Booking.created_at) >= months[0][0],
+                func.extract("month", Booking.created_at) >= 1,
+            )
+            .group_by(
+                Booking.platform,
+                func.extract("year",  Booking.created_at),
+                func.extract("month", Booking.created_at),
+            )
+            .all()
+        )
+
+        # Build trend lookup: trend[(platform, year, month)] = count
+        trend_lookup = {}
+        for row in trend_rows:
+            trend_lookup[(row.platform, int(row.yr), int(row.mo))] = row.cnt
+
         trend_labels  = [month_abbr[m] for _, m in months]
-        trend_airbnb  = []
-        trend_vrbo    = []
-        trend_booking = []
+        trend_airbnb  = [trend_lookup.get(("airbnb",  y, m), 0) for y, m in months]
+        trend_vrbo    = [trend_lookup.get(("vrbo",    y, m), 0) for y, m in months]
+        trend_booking = [trend_lookup.get(("booking", y, m), 0) for y, m in months]
 
-        for y, m in months:
-            def _monthly(platform, yr, mo):
-                return db.query(func.count(Booking.id)).filter(
-                    Booking.platform == platform,
-                    func.extract("year",  Booking.created_at) == yr,
-                    func.extract("month", Booking.created_at) == mo,
-                ).scalar() or 0
-
-            trend_airbnb.append(_monthly("airbnb",  y, m))
-            trend_vrbo.append(  _monthly("vrbo",    y, m))
-            trend_booking.append(_monthly("booking", y, m))
-
-        # Top properties by booking count
+        # ── 4. Top properties — ONE query ─────────────────────────────
         from sqlalchemy import desc
         prop_rows = (
             db.query(Property.name, func.count(Booking.id).label("cnt"))
@@ -218,7 +258,6 @@ def analytics(request: Request):
         )
         property_labels = [r.name for r in prop_rows]
         property_counts = [r.cnt  for r in prop_rows]
-
 
         return templates.TemplateResponse(
             "analytics.html",

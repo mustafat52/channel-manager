@@ -217,10 +217,11 @@ td.modified  { color:var(--amber); font-weight:700; }
 <div class="nav-icon">🏡</div>
 <h1>Channel Manager</h1>
 </div>
-<div style="display:flex;gap:8px">
+<div style="display:flex;gap:8px;align-items:center">
     <a href="/dashboard" style="text-decoration:none" class="nav-pill active">Dashboard</a>
     <a href="/analytics" style="text-decoration:none" class="nav-pill">Analytics</a>
-  </div>
+    <a href="/logout" style="text-decoration:none;background:rgba(217,80,72,0.18);color:#f87171;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;">Logout</a>
+</div>
 </nav>
 
 <div class="page">
@@ -327,18 +328,9 @@ td.modified  { color:var(--amber); font-weight:700; }
 </div>
 </div>
 
-<!--
-  FILTER LINK PATTERN (used throughout):
-  Every filter pill carries the OTHER two filters' current state in the URL,
-  so clicking one filter never resets the others.
-  None-valued params are simply omitted (no "platform=None" pollution).
--->
-
 <!-- PLATFORM FILTER -->
 <div class="filters">
 <span class="filter-section-label">Platform</span>
-
-{# Helper macro: build query string preserving all filters except the one being changed #}
 
 <a href="/dashboard{% if selected_status or window is not none or search %}?{% endif %}{% if window is not none %}window={{ window }}{% endif %}{% if selected_status %}{% if window is not none %}&{% endif %}status={{ selected_status }}{% endif %}{% if search %}{% if window is not none or selected_status %}&{% endif %}search={{ search }}{% endif %}"
    class="{% if not selected_platform %}active{% endif %}">
@@ -365,7 +357,6 @@ td.modified  { color:var(--amber); font-weight:700; }
 
 {% for d in [3, 7, 14, 20, 30] %}
 {% if window == d %}
-{# Already active — clicking again clears the window filter #}
 <a href="/dashboard{% if selected_platform or selected_status or search %}?{% endif %}{% if selected_platform %}platform={{ selected_platform }}{% endif %}{% if selected_status %}{% if selected_platform %}&{% endif %}status={{ selected_status }}{% endif %}{% if search %}{% if selected_platform or selected_status %}&{% endif %}search={{ search }}{% endif %}"
    class="active">
   {{ d }} days
@@ -447,6 +438,13 @@ td.modified  { color:var(--amber); font-weight:700; }
 </tbody>
 
 </table>
+
+<!-- PAGINATION BAR -->
+<div id="paginationBar" style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1.5px solid var(--border);background:var(--surface);border-radius:0 0 18px 18px;">
+    <span id="pageInfo" style="font-size:13px;color:var(--muted);font-weight:600;"></span>
+    <div style="display:flex;gap:6px;" id="pageButtons"></div>
+</div>
+
 </div>
 
 </div>
@@ -954,13 +952,11 @@ function openDrawer(mode) {
     currentMode = mode;
     const cfg = drawerConfig[mode];
 
-    // Set header
     document.getElementById('drawerTitle').textContent = cfg.title;
     document.getElementById('drawerSubtitle').textContent = cfg.subtitle;
     document.getElementById('drawerIconWrap').style.background = cfg.iconBg;
     document.getElementById('drawerIconWrap').innerHTML = cfg.iconSvg;
 
-    // Set action button
     const btn = document.getElementById('drawerActionBtn');
     btn.className = 'btn-save ' + cfg.actionClass;
     document.getElementById('drawerActionText').textContent = cfg.actionText;
@@ -968,12 +964,10 @@ function openDrawer(mode) {
     btn.querySelector('.btn-save-text').style.display = '';
     btn.disabled = false;
 
-    // Show correct panel
     ['add','cancel','update'].forEach(p => {
         document.getElementById('panel-' + p).style.display = p === mode ? 'flex' : 'none';
     });
 
-    // Reset cancel/update to step 1
     if (mode === 'cancel') {
         document.getElementById('cancel-step1').style.display = '';
         document.getElementById('cancel-step2').style.display = 'none';
@@ -1067,7 +1061,6 @@ async function lookupBooking(mode) {
         document.getElementById('update-step2').style.display = 'flex';
         document.getElementById('update-step2').style.flexDirection = 'column';
         document.getElementById('update-step2').style.gap = '16px';
-        // Pre-fill form with real data from DB
         document.getElementById('update-booking-id-hidden').value = booking.booking_id;
         document.getElementById('upd-guest').value = booking.guest;
         document.getElementById('upd-checkin').value = booking.checkin;
@@ -1123,6 +1116,67 @@ async function submitAction(url, data, btn) {
         btn.disabled = false;
     }
 }
+
+// ── PAGINATION ──
+const PAGE_SIZE = 10;
+let currentPage = 1;
+
+function initPagination() {
+    const tbody = document.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.querySelector('[colspan]'));
+    const totalRows = rows.length;
+    const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+
+    const bar = document.getElementById('paginationBar');
+    if (totalRows <= PAGE_SIZE) { bar.style.display = 'none'; return; }
+
+    function renderPage(page) {
+        currentPage = page;
+        rows.forEach((row, i) => {
+            row.style.display = (i >= (page - 1) * PAGE_SIZE && i < page * PAGE_SIZE) ? '' : 'none';
+        });
+
+        const from = (page - 1) * PAGE_SIZE + 1;
+        const to   = Math.min(page * PAGE_SIZE, totalRows);
+        document.getElementById('pageInfo').textContent = `Showing ${from}–${to} of ${totalRows} reservations`;
+
+        const btns = document.getElementById('pageButtons');
+        btns.innerHTML = '';
+
+        const btnStyle = (active) =>
+            `padding:6px 12px;border-radius:8px;border:1.5px solid ${active ? 'var(--navy)' : 'var(--border)'};` +
+            `background:${active ? 'var(--navy)' : 'var(--surface-2)'};color:${active ? 'white' : 'var(--navy)'};` +
+            `font-size:13px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:background 0.15s;`;
+
+        const prev = document.createElement('button');
+        prev.textContent = '←';
+        prev.disabled = page === 1;
+        prev.style.cssText = btnStyle(false);
+        prev.onclick = () => renderPage(page - 1);
+        btns.appendChild(prev);
+
+        const start = Math.max(1, page - 2);
+        const end   = Math.min(totalPages, page + 2);
+        for (let p = start; p <= end; p++) {
+            const btn = document.createElement('button');
+            btn.textContent = p;
+            btn.style.cssText = btnStyle(p === page);
+            btn.onclick = () => renderPage(p);
+            btns.appendChild(btn);
+        }
+
+        const next = document.createElement('button');
+        next.textContent = '→';
+        next.disabled = page === totalPages;
+        next.style.cssText = btnStyle(false);
+        next.onclick = () => renderPage(page + 1);
+        btns.appendChild(next);
+    }
+
+    renderPage(1);
+}
+
+document.addEventListener('DOMContentLoaded', initPagination);
 
 </script>
 </body>

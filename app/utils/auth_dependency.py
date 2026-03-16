@@ -15,5 +15,12 @@ def verify_token(credentials=Depends(security)):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
 
-    except:
+    except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+
+from fastapi import Request, HTTPException
+
+def require_login(request: Request):
+    if not request.session.get("user"):
+        raise HTTPException(status_code=401, detail="Not authenticated")    
