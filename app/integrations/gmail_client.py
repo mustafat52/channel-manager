@@ -57,15 +57,56 @@ MAX_PAGES = 10
 TOKEN_PATH       = os.environ.get("GMAIL_TOKEN_PATH", "gmail_token.json")
 CREDENTIALS_PATH = os.environ.get("GOOGLE_CREDENTIALS_PATH", "credentials.json")
 
+# When deploying to Railway (or any server where files can't be committed),
+# set GMAIL_TOKEN_JSON and GOOGLE_CREDENTIALS_JSON env vars with the full
+# file contents. These take priority over file paths.
+GMAIL_TOKEN_JSON_ENV       = os.environ.get("GMAIL_TOKEN_JSON")
+GOOGLE_CREDENTIALS_JSON_ENV = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+
+
+def _load_credentials_from_env() -> Credentials | None:
+    """Load Gmail OAuth token from GMAIL_TOKEN_JSON env var (Railway/production)."""
+    if not GMAIL_TOKEN_JSON_ENV:
+        return None
+    try:
+        import json
+        token_data = json.loads(GMAIL_TOKEN_JSON_ENV)
+        creds = Credentials.from_authorized_user_info(token_data, SCOPES)
+        logger.info("Gmail token loaded from GMAIL_TOKEN_JSON environment variable.")
+        return creds
+    except Exception as e:
+        logger.warning("Failed to load token from GMAIL_TOKEN_JSON env var: %s", e)
+        return None
+
+
+def _write_token(creds: Credentials) -> None:
+    """Persist refreshed token — to file if possible, always update env-loaded creds in memory."""
+    try:
+        with open(TOKEN_PATH, "w") as token_file:
+            token_file.write(creds.to_json())
+        os.chmod(TOKEN_PATH, 0o600)
+        logger.info("Gmail token saved to %s", TOKEN_PATH)
+    except OSError:
+        # Read-only filesystem (Railway) — token lives in memory only.
+        # It will be refreshed again on next cold start if needed.
+        logger.info("Could not write token to disk (read-only filesystem) — token kept in memory.")
+
 
 def get_gmail_service():
     """
     Build and return an authenticated Gmail API service.
-    Uses safe JSON token storage instead of pickle.
+
+    Token loading priority:
+      1. GMAIL_TOKEN_JSON env var (Railway / production — no file needed)
+      2. File at TOKEN_PATH (local development)
     """
     creds = None
 
-    if os.path.exists(TOKEN_PATH):
+    # 1. Try env var first (Railway)
+    creds = _load_credentials_from_env()
+
+    # 2. Fall back to file (local dev)
+    if creds is None and os.path.exists(TOKEN_PATH):
         try:
             creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
         except Exception as e:
@@ -77,24 +118,28 @@ def get_gmail_service():
             try:
                 creds.refresh(Request())
                 logger.info("Gmail OAuth token refreshed successfully.")
+                _write_token(creds)
             except RefreshError as e:
                 raise RuntimeError(
                     "Gmail OAuth token refresh failed — manual re-authentication required. "
                     f"Reason: {e}"
                 ) from e
         else:
+            # Cannot do interactive OAuth on a server — credentials file needed locally
+            if GOOGLE_CREDENTIALS_JSON_ENV:
+                raise RuntimeError(
+                    "Gmail token is missing or invalid. Re-run OAuth locally, "
+                    "then update GMAIL_TOKEN_JSON in Railway Variables with the new token."
+                )
             if not os.path.exists(CREDENTIALS_PATH):
                 raise FileNotFoundError(
                     f"Google credentials file not found at: {CREDENTIALS_PATH}. "
-                    "Set the GOOGLE_CREDENTIALS_PATH environment variable."
+                    "Set GOOGLE_CREDENTIALS_JSON environment variable on Railway."
                 )
             flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_PATH, SCOPES)
             creds = flow.run_local_server(port=0)
-            logger.info("Gmail OAuth completed, token saved to %s", TOKEN_PATH)
-
-        with open(TOKEN_PATH, "w") as token_file:
-            token_file.write(creds.to_json())
-        os.chmod(TOKEN_PATH, 0o600)
+            logger.info("Gmail OAuth completed.")
+            _write_token(creds)
 
     return build("gmail", "v1", credentials=creds)
 
