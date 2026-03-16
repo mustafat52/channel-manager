@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from starlette.middleware.sessions import SessionMiddleware
 from datetime import date, timedelta
-
+import os
 from app.db.database import SessionLocal
 from app.db.models import Booking, Property, BookingStatus
 from app.api import auth
@@ -15,7 +15,7 @@ from app.workers.notification_worker import create_scheduler
 
 app = FastAPI()
 app.include_router(manual_booking_router, prefix="/api")
-app.add_middleware(SessionMiddleware, secret_key="change-this-secret-key")
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SECRET_KEY", "change-this-secret-key"))
 
 templates = Jinja2Templates(directory="app/templates")
 app.include_router(auth.router)
