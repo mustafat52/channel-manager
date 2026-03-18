@@ -45,10 +45,10 @@ ALLOWED_SENDER_DOMAINS = {
 TEST_MODE = os.environ.get("TEST_MODE", "false").lower() == "true"
 
 if TEST_MODE:
-    GMAIL_QUERY = "is:unread newer_than:9d"
+    GMAIL_QUERY = "newer_than:9d"
 else:
     GMAIL_QUERY = (
-        "is:unread newer_than:2d "
+        "newer_than:2d "
         "from:(airbnb.com OR vrbo.com OR homeaway.com OR booking.com)"
     )
 
