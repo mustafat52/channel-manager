@@ -1,7 +1,7 @@
 import logging
 
 from .airbnb import parse_airbnb, parse_airbnb_cancellation, AirbnbParsingError
-from .vrbo import parse_vrbo, VrboParsingError
+from .vrbo import parse_vrbo, parse_vrbo_cancellation, VrboParsingError
 from .booking import parse_booking, BookingParsingError
 from app.parsers.utils import normalize_email_text
 
@@ -29,6 +29,10 @@ CANCELLATION_PHRASES = {
         "your reservation has been canceled",
     ],
     "vrbo": [
+        "reservation was canceled",
+        "reservation was cancelled",
+        "your reservation was canceled",
+        "your reservation was cancelled",
         "reservation has been cancelled",
         "reservation has been canceled",
         "booking has been cancelled",
@@ -128,13 +132,7 @@ def parse_email(email_text: str, sender_domain: str = "") -> dict:
             return parse_airbnb_cancellation(email_text)
 
         elif platform == "vrbo":
-            # FIX: VRBO cancellations previously fell through to parse_vrbo()
-            # which would fail or store a cancellation as a confirmed booking.
-            # Placeholder until you build parse_vrbo_cancellation().
-            raise UnsupportedEmailError(
-                "VRBO cancellation email detected but parser not yet implemented. "
-                "Email saved to failed_emails for manual review."
-            )
+            return parse_vrbo_cancellation(email_text)
 
         elif platform == "booking":
             raise UnsupportedEmailError(

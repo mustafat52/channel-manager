@@ -11,15 +11,12 @@ All tests should show ✅. Any ❌ means a parser is broken and must be
 fixed before running the live worker.
 """
 
-
 from pathlib import Path
 from app.parsers.airbnb import parse_airbnb, parse_airbnb_cancellation, AirbnbParsingError
 from app.parsers.vrbo import parse_vrbo, VrboParsingError
 from app.parsers.router import parse_email, detect_platform, UnsupportedEmailError
 from app.parsers.utils import normalize_email_text, check_email_size
 
-from dotenv import load_dotenv
-load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -152,26 +149,99 @@ except Exception as e:
 
 
 # ---------------------------------------------------------------------------
-# 4. AIRBNB CANCELLATION PARSER
+# 4. AIRBNB CANCELLATION PARSER — all 3 real samples tested inline
 # ---------------------------------------------------------------------------
-section("4. Airbnb cancellation — sample_airbnb_cancel.txt")
-try:
-    cancel_text = load("sample_airbnb_cancel.txt")
-    result = parse_airbnb_cancellation(cancel_text)
+from app.parsers.airbnb import parse_airbnb_cancellation
 
-    check("Returns a dict",                     isinstance(result, dict))
-    check("platform = 'airbnb'",                result.get("platform") == "airbnb")
-    check("status = 'cancelled'",               result.get("status") == "cancelled")
-    check("booking_id present",                 bool(result.get("booking_id")))
-    check("booking_id = HM4FSJ3NHZ",            result.get("booking_id") == "HM4FSJ3NHZ")
-    check("guest_name extracted (bonus)",       bool(result.get("guest_name")))
-    check("property_name extracted (bonus)",    bool(result.get("property_name")))
+AIRBNB_CANCEL_SAMPLES = [
+    {
+        "label":        "Airbnb cancel — HM4FSJ3NHZ (Chris)",
+        "file":         "sample_airbnb_cancel.txt",
+        "booking_id":   "HM4FSJ3NHZ",
+        "guest_name":   "Chris",
+        "property":     "Beautiful Condo Sleeps 3 - Museum District",
+    },
+    # Samples 2 & 3 pasted inline since no .txt file exists yet
+    {
+        "label":        "Airbnb cancel — HMTETCSAKZ (Claribel)",
+        "text": """Reservation canceled
+Super Cozy 4 Bedroom by Super Host - Sleeps 10
+Listing #641723322639187522
+May 30 - Jun 1, 3 guests
+Unfortunately, your guest Claribel had to cancel reservation HMTETCSAKZ for May 30 - Jun 1.""",
+        "booking_id":   "HMTETCSAKZ",
+        "guest_name":   "Claribel",
+        "property":     "Super Cozy 4 Bedroom by Super Host - Sleeps 10",
+    },
+    {
+        "label":        "Airbnb cancel — HMA2WH8NQX (Jade)",
+        "text": """Reservation canceled
+Modern 3BR Townhome | Gated | Sleeps 8
+Listing #1567866348984778548
+Mar 19 - 23, 4 guests
+Unfortunately, your guest Jade had to cancel reservation HMA2WH8NQX for Mar 19 - 23.""",
+        "booking_id":   "HMA2WH8NQX",
+        "guest_name":   "Jade",
+        "property":     "Modern 3BR Townhome | Gated | Sleeps 8",
+    },
+]
+
+for s in AIRBNB_CANCEL_SAMPLES:
+    section(f"4. {s['label']}")
+    try:
+        text = load(s["file"]) if "file" in s else s["text"]
+        result = parse_airbnb_cancellation(text)
+
+        check("Returns a dict",              isinstance(result, dict))
+        check("platform = 'airbnb'",         result.get("platform") == "airbnb")
+        check("status = 'cancelled'",        result.get("status") == "cancelled")
+        check("booking_id correct",          result.get("booking_id") == s["booking_id"])
+        check("guest_name extracted",        result.get("guest_name", "").lower().startswith(s["guest_name"].lower()))
+        check("property_name extracted",     bool(result.get("property_name")))
+
+        print(f"\n  Parsed values:")
+        print(f"    booking_id   : {result.get('booking_id')}")
+        print(f"    status       : {result.get('status')}")
+        print(f"    guest_name   : {result.get('guest_name', '(not extracted)')}")
+        print(f"    property_name: {result.get('property_name', '(not extracted)')}")
+
+    except Exception as e:
+        print(f"  {FAIL}  Parser crashed: {e}")
+
+
+# ---------------------------------------------------------------------------
+# 5. VRBO CANCELLATION PARSER — real sample tested inline
+# ---------------------------------------------------------------------------
+from app.parsers.vrbo import parse_vrbo_cancellation
+
+section("5. VRBO cancellation — HA-1YTNT6 (Raven Ortiz)")
+VRBO_CANCEL_TEXT = """Your reservation was canceled
+Please note that your reservation was canceled at property 2500513 for Mar 21, 2026 - Mar 22, 2026
+
+Cancellation reason
+Natural disaster or property damage
+
+Property: __2500513__ Reservation ID: __HA-1YTNT6__ Arrive: Mar 21, 2026 Depart: Mar 22, 2026 Nights: 1 Guests: 1 adult, 1 child Traveler Name: Raven Ortiz"""
+
+try:
+    result = parse_vrbo_cancellation(VRBO_CANCEL_TEXT)
+
+    check("Returns a dict",                  isinstance(result, dict))
+    check("platform = 'vrbo'",               result.get("platform") == "vrbo")
+    check("status = 'cancelled'",            result.get("status") == "cancelled")
+    check("booking_id = HA-1YTNT6",          result.get("booking_id") == "HA-1YTNT6")
+    check("property_id = 2500513",           result.get("platform_property_id") == "2500513")
+    check("guest_name = Raven Ortiz",        result.get("guest_name") == "Raven Ortiz")
+    check("check_in extracted",              bool(result.get("check_in")))
+    check("check_out extracted",             bool(result.get("check_out")))
 
     print(f"\n  Parsed values:")
-    print(f"    booking_id   : {result.get('booking_id')}")
-    print(f"    status       : {result.get('status')}")
-    print(f"    guest_name   : {result.get('guest_name', '(not extracted)')}")
-    print(f"    property_name: {result.get('property_name', '(not extracted)')}")
+    print(f"    booking_id        : {result.get('booking_id')}")
+    print(f"    status            : {result.get('status')}")
+    print(f"    platform_prop_id  : {result.get('platform_property_id', '(not extracted)')}")
+    print(f"    guest_name        : {result.get('guest_name', '(not extracted)')}")
+    print(f"    check_in          : {result.get('check_in', '(not extracted)')}")
+    print(f"    check_out         : {result.get('check_out', '(not extracted)')}")
 
 except Exception as e:
     print(f"  {FAIL}  Parser crashed: {e}")
@@ -210,8 +280,12 @@ section("6. Router — cancellation routing")
 try:
     cancel_text = load("sample_airbnb_cancel.txt")
     result = parse_email(cancel_text)
-    check("Cancellation routed correctly",      result.get("status") == "cancelled")
-    check("Booking ID extracted via router",    result.get("booking_id") == "HM4FSJ3NHZ")
+    check("Airbnb cancellation routed correctly",   result.get("status") == "cancelled")
+    check("Airbnb booking ID via router",           result.get("booking_id") == "HM4FSJ3NHZ")
+
+    vrbo_result = parse_email(VRBO_CANCEL_TEXT)
+    check("VRBO cancellation routed correctly",     vrbo_result.get("status") == "cancelled")
+    check("VRBO booking ID via router",             vrbo_result.get("booking_id") == "HA-1YTNT6")
 
 except Exception as e:
     print(f"  {FAIL}  Router cancellation routing crashed: {e}")

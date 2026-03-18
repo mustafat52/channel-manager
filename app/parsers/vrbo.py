@@ -217,3 +217,136 @@ def parse_vrbo(email_text: str) -> dict:
         "check_in":             check_in.isoformat(),
         "check_out":            check_out.isoformat(),
     }
+
+def _strip_vrbo_markdown(value: str) -> str:
+    """
+    Strip VRBO plain-text markdown underscores from values.
+    e.g. "__HA-1YTNT6__" → "HA-1YTNT6"
+         "__2500513__"   → "2500513"
+    """
+    return value.strip().strip("_").strip()
+
+
+def parse_vrbo_cancellation(email_text: str) -> dict:
+    """
+    Parse a VRBO cancellation email.
+
+    Based on real sample:
+      Subject: "Your reservation HA-1YTNT6 was canceled at Property 2500513:
+                Mar 21, 2026 - Mar 22, 2026"
+      Body:    "your reservation was canceled at property 2500513
+                for Mar 21, 2026 - Mar 22, 2026"
+      Table:   "Property: __2500513__  Reservation ID: __HA-1YTNT6__"
+               "Arrive: Mar 21, 2026   Depart: Mar 22, 2026"
+               "Traveler Name: Raven Ortiz"
+
+    Extraction strategies for booking ID (in order of reliability):
+      1. Inline table:  "Reservation ID: __HA-XXXXXX__"
+      2. Subject/body:  "reservation HA-XXXXXX was canceled"
+      3. Subject line:  "Your reservation HA-XXXXXX was canceled"
+
+    Also extracts property_id, guest_name, check_in, check_out as bonus
+    fields so the dashboard can show full cancellation details.
+    """
+
+    check_email_size(email_text, VrboParsingError)
+    email_text = normalize_email_text(email_text)
+
+    # --- Booking ID ---
+    booking_id = None
+
+    # Pattern 1: inline table "Reservation ID: __HA-1YTNT6__"  (most reliable)
+    match = re.search(
+        r"Reservation\s+ID\s*:\s*_{0,2}(HA-[A-Z0-9]{6})_{0,2}",
+        email_text, re.IGNORECASE
+    )
+    if match:
+        booking_id = match.group(1).upper()
+
+    # Pattern 2: "reservation HA-XXXXXX was canceled"
+    if not booking_id:
+        match = re.search(
+            r"reservation\s+(HA-[A-Z0-9]{6})\s+was\s+cancel",
+            email_text, re.IGNORECASE
+        )
+        if match:
+            booking_id = match.group(1).upper()
+
+    # Pattern 3: subject line "Your reservation HA-XXXXXX was canceled at Property"
+    if not booking_id:
+        match = re.search(
+            r"Your\s+reservation\s+(HA-[A-Z0-9]{6})\s+was\s+cancel",
+            email_text, re.IGNORECASE
+        )
+        if match:
+            booking_id = match.group(1).upper()
+
+    if not booking_id:
+        raise VrboParsingError("Booking ID not found in VRBO cancellation email.")
+
+    if not VRBO_BOOKING_ID_RE.fullmatch(booking_id):
+        raise VrboParsingError(
+            f"Cancellation booking ID has unexpected format: {booking_id!r}."
+        )
+
+    # --- Property ID (bonus) ---
+    property_id = None
+    match = re.search(
+        r"Property\s*:\s*_{0,2}(\d{5,10})_{0,2}",
+        email_text, re.IGNORECASE
+    )
+    if not match:
+        # Fallback: "canceled at property 2500513"
+        match = re.search(
+            r"canceled\s+at\s+property\s+(\d{5,10})",
+            email_text, re.IGNORECASE
+        )
+    if match:
+        property_id = _strip_vrbo_markdown(match.group(1))
+
+    # --- Guest name (bonus) ---
+    # "Traveler Name: Raven Ortiz" — on same line as label
+    guest_name = None
+    match = re.search(
+        r"Traveler\s+Name\s*:\s*([A-Za-z][A-Za-z\s\-']{1,50}?)(?:\s{2,}|\n|$)",
+        email_text, re.IGNORECASE
+    )
+    if match:
+        guest_name = match.group(1).strip().title()
+
+    # --- Dates (bonus) ---
+    # "Arrive: Mar 21, 2026   Depart: Mar 22, 2026"
+    check_in = None
+    check_out = None
+    arrive_match = re.search(
+        r"Arrive\s*:\s*([A-Za-z]{3,9}\s+\d{1,2},\s+\d{4})",
+        email_text, re.IGNORECASE
+    )
+    depart_match = re.search(
+        r"Depart\s*:\s*([A-Za-z]{3,9}\s+\d{1,2},\s+\d{4})",
+        email_text, re.IGNORECASE
+    )
+    if arrive_match and depart_match:
+        try:
+            check_in  = normalize_date(arrive_match.group(1), VrboParsingError).isoformat()
+            check_out = normalize_date(depart_match.group(1), VrboParsingError).isoformat()
+        except VrboParsingError:
+            pass  # dates are bonus — don't fail the whole cancellation
+
+    # --- Build result ---
+    result = {
+        "platform":   "vrbo",
+        "booking_id": booking_id,
+        "status":     "cancelled",
+    }
+
+    if property_id:
+        result["platform_property_id"] = property_id
+    if guest_name:
+        result["guest_name"] = guest_name
+    if check_in:
+        result["check_in"] = check_in
+    if check_out:
+        result["check_out"] = check_out
+
+    return result
