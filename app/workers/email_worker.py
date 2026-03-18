@@ -1,10 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-<<<<<<< HEAD
-=======
 import time
->>>>>>> dev
 import logging
 
 
@@ -51,8 +48,6 @@ def _process_single_email(email: dict) -> None:
 
     finally:
         db.close()
-<<<<<<< HEAD
-=======
 
 
 def run_worker():
@@ -75,7 +70,7 @@ def run_worker():
             logger.critical(
                 "Gmail authentication failed — worker is stopping. Error: %s", e
             )
-            sys.exit(1)
+            
 
         except Exception as e:
             consecutive_failures += 1
@@ -94,4 +89,3 @@ def run_worker():
 
 if __name__ == "__main__":
     run_worker()
->>>>>>> dev
