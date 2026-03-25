@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from starlette.middleware.sessions import SessionMiddleware
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 
 import os
@@ -61,6 +61,13 @@ def stop_scheduler():
 def home():
     return RedirectResponse("/login")
 
+def format_us(date_obj):
+    if not date_obj:
+        return ""
+    if isinstance(date_obj, str):
+        date_obj = datetime.fromisoformat(date_obj)
+    return date_obj.strftime("%m/%d/%Y")
+
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
@@ -74,8 +81,15 @@ def dashboard(
         return RedirectResponse(url="/login")
 
     window_int: int | None = None
-    if window is not None and window.strip().lstrip('-').isdigit():
-        window_int = int(window)
+    window_type: str | None = None
+
+    if window:
+        w = window.strip().lower()
+
+        if w.isdigit():
+            window_int = int(w)
+        elif w in ["today", "tomorrow"]:
+            window_type = w
 
     db: Session = SessionLocal()
 
@@ -92,7 +106,15 @@ def dashboard(
             except ValueError:
                 pass
 
-        if window_int is not None:
+        # ✅ TODAY / TOMORROW filters
+        if window_type == "today":
+            query = query.filter(Booking.checkout_date == today)
+
+        elif window_type == "tomorrow":
+            query = query.filter(Booking.checkout_date == today + timedelta(days=1))
+
+        # ✅ EXISTING WINDOW FILTER (3,7,14...)
+        elif window_int is not None:
             window_end = today + timedelta(days=window_int)
             query = query.filter(
                 Booking.checkout_date >= today,
@@ -110,6 +132,10 @@ def dashboard(
             )
 
         bookings = query.order_by(Booking.checkout_date.asc()).all()
+        
+        for b in bookings:
+            b.checkin_date = format_us(b.checkin_date)
+            b.checkout_date = format_us(b.checkout_date)
 
         total_bookings  = db.query(func.count(Booking.id)).scalar()
         airbnb_count    = db.query(func.count(Booking.id)).filter(Booking.platform == "airbnb").scalar()
@@ -130,7 +156,7 @@ def dashboard(
                 "confirmed_count":  confirmed_count,
                 "selected_platform": platform,
                 "selected_status":   status,
-                "window":            window_int,
+                "window":            window if window else None,
                 "search":            search,
                 "properties":        properties,
             },
