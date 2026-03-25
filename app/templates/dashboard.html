@@ -355,6 +355,16 @@ td.modified  { color:var(--amber); font-weight:700; }
   Any
 </a>
 
+<a href="/dashboard?window=today{% if selected_platform %}&platform={{ selected_platform }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+   class="{% if window == 'today' %}active{% endif %}">
+  Today
+</a>
+
+<a href="/dashboard?window=tomorrow{% if selected_platform %}&platform={{ selected_platform }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
+   class="{% if window == 'tomorrow' %}active{% endif %}">
+  Tomorrow
+</a>
+
 {% for d in [3, 7, 14, 20, 30] %}
 {% if window == d %}
 <a href="/dashboard{% if selected_platform or selected_status or search %}?{% endif %}{% if selected_platform %}platform={{ selected_platform }}{% endif %}{% if selected_status %}{% if selected_platform %}&{% endif %}status={{ selected_status }}{% endif %}{% if search %}{% if selected_platform or selected_status %}&{% endif %}search={{ search }}{% endif %}"
