@@ -9,47 +9,51 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
-# Suppress the noisy "file_cache is only supported with oauth2client<4.0.0" warning
 logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# SCOPES
-# gmail.readonly  — read email body content
-# gmail.modify    — mark emails as read after processing
-# ---------------------------------------------------------------------------
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.modify",
 ]
 
 # ---------------------------------------------------------------------------
-# ALLOWED SENDERS
-# Only process emails from known booking platform domains.
-# Bypassed when TEST_MODE=true in .env (for testing with forwarded emails).
-# ALWAYS set TEST_MODE=false before handing over to client.
+# ALLOWED SENDER BASE DOMAINS
+# FIX: Changed from exact domain match to base-domain match.
+# Real production emails come from subdomains:
+#   messages.homeaway.com, payment.homeaway.com, reviews.homeaway.com
+#   guest.booking.com, properties.booking.com
+#   automated@airbnb.com (direct, no subdomain)
+# We now check if the sender domain ENDS WITH any of these base domains.
 # ---------------------------------------------------------------------------
-ALLOWED_SENDER_DOMAINS = {
+ALLOWED_SENDER_BASE_DOMAINS = {
     "airbnb.com",
     "vrbo.com",
     "homeaway.com",
     "booking.com",
 }
 
-# ---------------------------------------------------------------------------
-# TEST_MODE — read once at startup from .env
-# true  → domain allowlist bypassed, wider query window (7d, no from: filter)
-# false → production mode, tight query, strict domain enforcement
-# ---------------------------------------------------------------------------
 TEST_MODE = os.environ.get("TEST_MODE", "false").lower() == "true"
 
+# ---------------------------------------------------------------------------
+# GMAIL_LABEL_ID — the internal Gmail label ID for "to-process"
+# Get this by running: python scripts/get_label_id.py
+# Then set GMAIL_LABEL_ID in your .env / Railway environment variables.
+# ---------------------------------------------------------------------------
+GMAIL_LABEL_ID = os.environ.get("GMAIL_LABEL_ID", "")
+
 if TEST_MODE:
-    GMAIL_QUERY = "newer_than:9d"
+    GMAIL_QUERY = "is:unread newer_than:9d"
+elif GMAIL_LABEL_ID:
+    # Production with label — completely decoupled from read/unread status.
+    # Client can open emails freely without affecting the poller.
+    GMAIL_QUERY = f"label:to-process"
 else:
+    # Fallback if label not set up yet
     GMAIL_QUERY = (
-        "newer_than:2d "
-        "from:(airbnb.com OR vrbo.com OR homeaway.com OR booking.com)"
+        "is:unread newer_than:2d "
+        "from:(airbnb.com OR homeaway.com OR vrbo.com OR booking.com)"
     )
 
 MAX_PAGES = 10
@@ -57,15 +61,25 @@ MAX_PAGES = 10
 TOKEN_PATH       = os.environ.get("GMAIL_TOKEN_PATH", "gmail_token.json")
 CREDENTIALS_PATH = os.environ.get("GOOGLE_CREDENTIALS_PATH", "credentials.json")
 
-# When deploying to Railway (or any server where files can't be committed),
-# set GMAIL_TOKEN_JSON and GOOGLE_CREDENTIALS_JSON env vars with the full
-# file contents. These take priority over file paths.
-GMAIL_TOKEN_JSON_ENV       = os.environ.get("GMAIL_TOKEN_JSON")
+GMAIL_TOKEN_JSON_ENV        = os.environ.get("GMAIL_TOKEN_JSON")
 GOOGLE_CREDENTIALS_JSON_ENV = os.environ.get("GOOGLE_CREDENTIALS_JSON")
 
 
+def _is_allowed_sender(domain: str) -> bool:
+    """
+    Return True if domain matches or is a subdomain of any allowed base domain.
+    e.g. "messages.homeaway.com" → ends with "homeaway.com" → allowed ✅
+         "guest.booking.com"     → ends with "booking.com"  → allowed ✅
+         "airbnb.com"            → exact match              → allowed ✅
+         "gmail.com"             → no match                 → blocked ❌
+    """
+    for base in ALLOWED_SENDER_BASE_DOMAINS:
+        if domain == base or domain.endswith("." + base):
+            return True
+    return False
+
+
 def _load_credentials_from_env() -> Credentials | None:
-    """Load Gmail OAuth token from GMAIL_TOKEN_JSON env var (Railway/production)."""
     if not GMAIL_TOKEN_JSON_ENV:
         return None
     try:
@@ -80,32 +94,18 @@ def _load_credentials_from_env() -> Credentials | None:
 
 
 def _write_token(creds: Credentials) -> None:
-    """Persist refreshed token — to file if possible, always update env-loaded creds in memory."""
     try:
         with open(TOKEN_PATH, "w") as token_file:
             token_file.write(creds.to_json())
         os.chmod(TOKEN_PATH, 0o600)
         logger.info("Gmail token saved to %s", TOKEN_PATH)
     except OSError:
-        # Read-only filesystem (Railway) — token lives in memory only.
-        # It will be refreshed again on next cold start if needed.
         logger.info("Could not write token to disk (read-only filesystem) — token kept in memory.")
 
 
 def get_gmail_service():
-    """
-    Build and return an authenticated Gmail API service.
-
-    Token loading priority:
-      1. GMAIL_TOKEN_JSON env var (Railway / production — no file needed)
-      2. File at TOKEN_PATH (local development)
-    """
-    creds = None
-
-    # 1. Try env var first (Railway)
     creds = _load_credentials_from_env()
 
-    # 2. Fall back to file (local dev)
     if creds is None and os.path.exists(TOKEN_PATH):
         try:
             creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
@@ -125,7 +125,6 @@ def get_gmail_service():
                     f"Reason: {e}"
                 ) from e
         else:
-            # Cannot do interactive OAuth on a server — credentials file needed locally
             if GOOGLE_CREDENTIALS_JSON_ENV:
                 raise RuntimeError(
                     "Gmail token is missing or invalid. Re-run OAuth locally, "
@@ -145,7 +144,6 @@ def get_gmail_service():
 
 
 def _get_sender_domain(email_message) -> str:
-    """Extract the domain from the From header of a parsed email."""
     from_header = email_message.get("From", "")
     if "<" in from_header:
         address = from_header.split("<")[-1].rstrip(">").strip()
@@ -155,12 +153,7 @@ def _get_sender_domain(email_message) -> str:
 
 
 def _extract_body(email_message) -> str:
-    """
-    Extract plain-text body from a parsed email message.
-    Uses charset declared in the email part, falls back to utf-8.
-    """
     body = ""
-
     if email_message.is_multipart():
         for part in email_message.walk():
             if part.get_content_type() == "text/plain":
@@ -174,25 +167,10 @@ def _extract_body(email_message) -> str:
         if payload:
             charset = email_message.get_content_charset() or "utf-8"
             body = payload.decode(charset, errors="replace")
-
     return body
 
 
 def fetch_booking_emails() -> list[dict]:
-    """
-    Fetch unread booking emails from Gmail.
-
-    Returns a list of dicts:
-        {
-            "message_id":    str,  # Gmail message ID (deduplication key)
-            "body":          str,  # Plain-text email body
-            "sender_domain": str,  # e.g. "airbnb.com" (for router detection)
-            "_service":      obj,  # Gmail service (for mark_email_as_read)
-        }
-
-    Emails are NOT marked as read here — the worker calls
-    mark_email_as_read() only after successful processing.
-    """
     if TEST_MODE:
         logger.warning(
             "TEST_MODE is ON — sender allowlist and from: filter are disabled. "
@@ -205,7 +183,6 @@ def fetch_booking_emails() -> list[dict]:
     pages_fetched = 0
 
     while pages_fetched < MAX_PAGES:
-
         list_kwargs = {
             "userId": "me",
             "q": GMAIL_QUERY,
@@ -220,7 +197,6 @@ def fetch_booking_emails() -> list[dict]:
 
         for msg in messages:
             message_id = msg["id"]
-
             try:
                 message = service.users().messages().get(
                     userId="me",
@@ -232,7 +208,7 @@ def fetch_booking_emails() -> list[dict]:
                 email_message = message_from_bytes(raw)
                 sender_domain = _get_sender_domain(email_message)
 
-                if sender_domain not in ALLOWED_SENDER_DOMAINS:
+                if not _is_allowed_sender(sender_domain):
                     if TEST_MODE:
                         logger.warning(
                             "TEST_MODE: processing email %s from non-production "
@@ -274,19 +250,29 @@ def fetch_booking_emails() -> list[dict]:
 
 def mark_email_as_read(service, message_id: str) -> None:
     """
-    Mark a single Gmail message as read (removes UNREAD label).
+    Remove the 'to-process' label after successful processing (label mode),
+    OR mark as read (fallback unread mode).
     Called by the worker only after successful processing.
     """
     try:
-        service.users().messages().modify(
-            userId="me",
-            id=message_id,
-            body={"removeLabelIds": ["UNREAD"]},
-        ).execute()
+        if GMAIL_LABEL_ID:
+            # Label mode — remove the to-process label.
+            # Client can read emails freely without affecting the poller.
+            service.users().messages().modify(
+                userId="me",
+                id=message_id,
+                body={"removeLabelIds": [GMAIL_LABEL_ID]},
+            ).execute()
+        else:
+            # Fallback — mark as read
+            service.users().messages().modify(
+                userId="me",
+                id=message_id,
+                body={"removeLabelIds": ["UNREAD"]},
+            ).execute()
     except Exception as e:
-        logger.warning("Failed to mark email %s as read: %s", message_id, e)
+        logger.warning("Failed to update email %s after processing: %s", message_id, e)
 
 
 def _mark_as_read(service, message_id: str) -> None:
-    """Internal convenience wrapper."""
     mark_email_as_read(service, message_id)

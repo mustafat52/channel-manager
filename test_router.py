@@ -63,9 +63,9 @@ def expect_raises(label: str, exc_type: type, fn, *args, **kwargs):
 
 
 # ---------------------------------------------------------------------------
-# 1. AIRBNB CONFIRMATION PARSER
+# 1. AIRBNB CONFIRMATION PARSER — Format A (forwarded/plain text)
 # ---------------------------------------------------------------------------
-section("1. Airbnb confirmation — sample_airbnb.txt")
+section("1a. Airbnb confirmation — Format A (sample_airbnb.txt)")
 try:
     airbnb_text = load("sample_airbnb.txt")
     result = parse_airbnb(airbnb_text)
@@ -83,6 +83,72 @@ try:
     check("check_in is ISO date (YYYY-MM-DD)",  len(result.get("check_in", "")) == 10 and result["check_in"][4] == "-")
     check("check_out > check_in",               result.get("check_out", "") > result.get("check_in", ""))
     check("no 'status' key (it's a confirmation)", "status" not in result)
+
+    print(f"\n  Parsed values:")
+    print(f"    booking_id   : {result.get('booking_id')}")
+    print(f"    guest_name   : {result.get('guest_name')}")
+    print(f"    property_name: {result.get('property_name')}")
+    print(f"    check_in     : {result.get('check_in')}")
+    print(f"    check_out    : {result.get('check_out')}")
+
+except Exception as e:
+    print(f"  {FAIL}  Parser crashed: {e}")
+
+
+# ---------------------------------------------------------------------------
+# 1b. AIRBNB CONFIRMATION PARSER — Format B (real production email)
+# ---------------------------------------------------------------------------
+section("1b. Airbnb confirmation — Format B (real production, uppercase, side-by-side dates)")
+AIRBNB_PRODUCTION_EMAIL = """%opentrack%
+
+https://www.airbnb.com/?c=.pi80.pktest
+
+NEW BOOKING CONFIRMED! JENNIFER ARRIVES APR 16.
+
+https://www.airbnb.com/hosting/reservations/details/HM3YZBNRXT?c=.pi80   Jennifer Ahweyevu
+                                                                                                                                                                                                     
+[https://www.airbnb.com/hosting/reservations/details/HM3YZBNRXT?c=.pi80]
+                                                                                                                                                                                                     
+Identity verified · 7 reviews
+                                                                                                                                                                                                     
+Augusta, GA
+
+Send Jennifer a MessageSend Jennifer a Message
+[https://www.airbnb.com/hosting/thread/2483273044]
+
+https://www.airbnb.com/rooms/1572219165527707452?c=.pi80
+
+URBAN ELITE 3BR SUITE L W/ 30 DAYS DEALS!
+
+Entire home/apt
+
+[https://www.airbnb.com/rooms/1572219165527707452?c=.pi80]
+
+Check-in      Checkout
+
+Thu, Apr 16   Mon, Apr 20
+
+4:00 PM       11:00 AM
+
+GUESTS
+
+3 adults
+
+CONFIRMATION CODE
+HM3YZBNRXT
+"""
+try:
+    result = parse_airbnb(AIRBNB_PRODUCTION_EMAIL)
+
+    check("Returns a dict",                     isinstance(result, dict))
+    check("platform = 'airbnb'",                result.get("platform") == "airbnb")
+    check("booking_id = HM3YZBNRXT",            result.get("booking_id") == "HM3YZBNRXT")
+    check("guest_name = Jennifer Ahweyevu",     result.get("guest_name") == "Jennifer Ahweyevu")
+    check("property_name present",              bool(result.get("property_name")))
+    check("property_name not all caps",         not result.get("property_name", "").isupper())
+    check("check_in = 2026-04-16",              result.get("check_in") == "2026-04-16")
+    check("check_out = 2026-04-20",             result.get("check_out") == "2026-04-20")
+    check("check_out > check_in",               result.get("check_out", "") > result.get("check_in", ""))
 
     print(f"\n  Parsed values:")
     print(f"    booking_id   : {result.get('booking_id')}")
@@ -215,7 +281,7 @@ for s in AIRBNB_CANCEL_SAMPLES:
 from app.parsers.vrbo import parse_vrbo_cancellation
 
 section("5. VRBO cancellation — HA-1YTNT6 (Raven Ortiz)")
-VRBO_CANCEL_TEXT = """Your reservation was canceled
+VRBO_CANCEL_TEXT = """Vrbo - Your reservation was canceled
 Please note that your reservation was canceled at property 2500513 for Mar 21, 2026 - Mar 22, 2026
 
 Cancellation reason
