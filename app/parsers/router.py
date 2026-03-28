@@ -13,19 +13,59 @@ class UnsupportedEmailError(Exception):
     pass
 
 
+class NonBookingEmailError(Exception):
+    """
+    Raised when an email is from a known platform but is not a booking-relevant
+    email — e.g. a guest message reply, a payment receipt, a review request.
+
+    Unlike UnsupportedEmailError (which goes to failed_emails),
+    NonBookingEmailError is silently skipped and the email is marked as
+    processed so it doesn't appear again.
+    """
+    pass
+
+
+# ---------------------------------------------------------------------------
+# NON-BOOKING PHRASES
+# Emails containing these phrases are legitimate platform emails but not
+# booking confirmations or cancellations. They should be silently skipped.
+# Add phrases as you encounter new email types in the wild.
+# ---------------------------------------------------------------------------
+NON_BOOKING_PHRASES = {
+    "vrbo": [
+        "has replied to your message",
+        "sent you a message",
+        "new message from",
+        "payment has been processed",
+        "payout has been sent",
+        "left you a review",
+        "review reminder",
+        "complete your listing",
+        "tips for hosting",
+    ],
+    "airbnb": [
+        "sent you a message",
+        "you have a new message",
+        "left you a review",
+        "review reminder",
+        "your payout",
+        "upcoming trip reminder",
+        "checkout reminder",
+    ],
+    "booking": [
+        "new message from your guest",
+        "guest has left a review",
+        "payment confirmation",
+    ],
+}
+
 # ---------------------------------------------------------------------------
 # CANCELLATION PHRASES
-# FIX: Cancellation detection was only implemented for Airbnb. A VRBO
-# cancellation email would fall through to parse_vrbo() which would either
-# fail loudly or — worse — store it as a confirmed booking.
-#
-# Each platform uses different language in their cancellation emails.
-# Add phrases here as you encounter new formats in the wild.
 # ---------------------------------------------------------------------------
 CANCELLATION_PHRASES = {
     "airbnb": [
         "reservation canceled",
-        "reservation cancelled",       # Airbnb uses both spellings
+        "reservation cancelled",
         "your reservation has been canceled",
     ],
     "vrbo": [
@@ -46,6 +86,35 @@ CANCELLATION_PHRASES = {
     ],
 }
 
+# ---------------------------------------------------------------------------
+# SENDER DOMAIN → PLATFORM MAP
+# Uses base domain matching (subdomains included).
+# e.g. "messages.homeaway.com" → "vrbo"
+#      "guest.booking.com"     → "booking"
+# ---------------------------------------------------------------------------
+DOMAIN_PLATFORM_MAP = {
+    "airbnb.com":   "airbnb",
+    "vrbo.com":     "vrbo",
+    "homeaway.com": "vrbo",
+    "booking.com":  "booking",
+}
+
+
+def _platform_from_domain(sender_domain: str) -> str | None:
+    """Return platform name if sender_domain matches or is subdomain of a known base domain."""
+    for base, platform in DOMAIN_PLATFORM_MAP.items():
+        if sender_domain == base or sender_domain.endswith("." + base):
+            return platform
+    return None
+
+
+def _is_non_booking(platform: str, lower_text: str) -> bool:
+    """Return True if this is a known non-booking email (message, review, payout etc.)"""
+    for phrase in NON_BOOKING_PHRASES.get(platform, []):
+        if phrase in lower_text:
+            return True
+    return False
+
 
 def _is_cancellation(platform: str, lower_text: str) -> bool:
     """Return True if any known cancellation phrase is found for this platform."""
@@ -58,31 +127,17 @@ def _is_cancellation(platform: str, lower_text: str) -> bool:
 def detect_platform(email_text: str, sender_domain: str = "") -> str:
     """
     Detect which booking platform sent this email.
-
-    FIX 1: Now accepts an optional sender_domain argument (passed from
-    gmail_client via the email dict). When present, domain-based detection
-    runs first — it's more reliable than body-text matching because a guest
-    could mention a competitor platform in the body of their message.
-
-    FIX 2: Body-text detection is kept as a fallback for cases where the
-    sender domain is unavailable (e.g. forwarded emails, future platforms).
-
-    FIX 3: Removed bare `import re` that was imported but never used.
+    Primary: sender domain (subdomain-aware).
+    Fallback: body-text keyword matching.
     """
+    # Primary: sender domain
+    if sender_domain:
+        platform = _platform_from_domain(sender_domain)
+        if platform:
+            logger.debug("Platform detected via sender domain: %s → %s", sender_domain, platform)
+            return platform
 
-    # --- Primary: sender domain (fast, unambiguous) ---
-    domain_map = {
-        "airbnb.com":    "airbnb",
-        "vrbo.com":      "vrbo",
-        "homeaway.com":  "vrbo",
-        "booking.com":   "booking",
-    }
-    if sender_domain and sender_domain in domain_map:
-        platform = domain_map[sender_domain]
-        logger.debug("Platform detected via sender domain: %s → %s", sender_domain, platform)
-        return platform
-
-    # --- Fallback: body-text keyword matching ---
+    # Fallback: body text
     lower_text = email_text.lower()
 
     if "airbnb" in lower_text:
@@ -108,23 +163,27 @@ def parse_email(email_text: str, sender_domain: str = "") -> dict:
     Main entry point — parse any booking confirmation or cancellation email.
     Returns a standardised booking dict.
 
-    Args:
-        email_text:    Plain-text body of the email.
-        sender_domain: Domain from the From header (e.g. 'airbnb.com').
-                       Optional but improves platform detection accuracy.
+    Raises:
+        NonBookingEmailError  — known platform, irrelevant email (skip silently)
+        UnsupportedEmailError — unknown platform or unimplemented parser
+        AirbnbParsingError / VrboParsingError / BookingParsingError — parse failure
     """
-
-    # Normalise line endings and strip control characters once here,
-    # before platform detection or any parser runs.
-    # The individual parsers also call this, so double-normalising is safe.
     email_text = normalize_email_text(email_text)
     lower_text = email_text.lower()
 
     platform = detect_platform(email_text, sender_domain)
+
+    # --- Non-booking check (MUST run before cancellation and confirmation) ---
+    # Silently skip message replies, reviews, payouts etc.
+    if _is_non_booking(platform, lower_text):
+        raise NonBookingEmailError(
+            f"[{platform}] Non-booking email detected "
+            f"(message reply / review / payout). Skipping silently."
+        )
+
     logger.info("Routing email to platform parser: %s", platform)
 
-    # --- Cancellation detection (must run before confirmation parsing) ---
-    # FIX: Was only checked for Airbnb. Now checked for all platforms.
+    # --- Cancellation detection ---
     if _is_cancellation(platform, lower_text):
         logger.info("Email identified as cancellation for platform: %s", platform)
 
@@ -136,8 +195,7 @@ def parse_email(email_text: str, sender_domain: str = "") -> dict:
 
         elif platform == "booking":
             raise UnsupportedEmailError(
-                "Booking.com cancellation email detected but parser not yet implemented. "
-                "Email saved to failed_emails for manual review."
+                "Booking.com cancellation email detected but parser not yet implemented."
             )
 
     # --- Confirmation parsing ---
@@ -152,8 +210,6 @@ def parse_email(email_text: str, sender_domain: str = "") -> dict:
             return parse_booking(email_text)
 
     except (AirbnbParsingError, VrboParsingError, BookingParsingError) as e:
-        # FIX: Re-raise with platform context so the worker log shows
-        # WHICH platform failed, not just a bare field-not-found message.
         raise type(e)(f"[{platform}] {e}") from e
 
     raise UnsupportedEmailError(
